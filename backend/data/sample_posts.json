@@ -1,0 +1,122 @@
+[
+  {
+    "note_id": "mock_beauty_001",
+    "source_url": "https://www.xiaohongshu.com/explore/mock_beauty_001",
+    "title": "Ten minute glow base for humid mornings",
+    "author": "Lina Finds",
+    "author_url": "https://www.xiaohongshu.com/user/profile/lina-finds",
+    "collected_date": "2026-06-02",
+    "raw_text": "A simple makeup routine for humid mornings. Start with a light gel moisturizer, use SPF, then spot conceal only around redness. Products: gel moisturizer, mineral sunscreen, peach corrector, cushion foundation. Finish with a thin layer of powder only on the T-zone.",
+    "ocr_text": "SPF, spot conceal, cushion, powder T-zone"
+  },
+  {
+    "note_id": "mock_beauty_002",
+    "source_url": "https://www.xiaohongshu.com/explore/mock_beauty_002",
+    "title": "Lip color map for muted rose makeup",
+    "author": "Soft Palette Lab",
+    "author_url": "https://www.xiaohongshu.com/user/profile/soft-palette-lab",
+    "collected_date": "2026-06-04",
+    "raw_text": "Comparison of muted rose lip colors by undertone. Cool rose looks cleaner with gray knitwear, warmer rose works better with beige trench coats. Items: satin tint, matte pencil, clear gloss. Useful swatches are shown in window light.",
+    "ocr_text": "cool rose, warm rose, satin tint, matte pencil"
+  },
+  {
+    "note_id": "mock_fashion_001",
+    "source_url": "https://www.xiaohongshu.com/explore/mock_fashion_001",
+    "title": "Five piece office capsule for summer rain",
+    "author": "Desk to Dinner",
+    "author_url": "https://www.xiaohongshu.com/user/profile/desk-to-dinner",
+    "collected_date": "2026-06-08",
+    "raw_text": "Capsule outfit formula for rainy office days. Items: cropped trench, black knit tank, straight ankle pants, waterproof flats, structured tote. The palette stays black, white, olive, and silver so every piece rotates without looking repetitive.",
+    "ocr_text": "capsule wardrobe, trench, flats, tote"
+  },
+  {
+    "note_id": "mock_fashion_002",
+    "source_url": "https://www.xiaohongshu.com/explore/mock_fashion_002",
+    "title": "Linen shirt styling without looking crumpled",
+    "author": "Quiet Closet",
+    "author_url": "https://www.xiaohongshu.com/user/profile/quiet-closet",
+    "collected_date": "2026-06-10",
+    "raw_text": "The trick is choosing medium weight linen and pairing it with sharper textures. Key point one: roll sleeves twice and keep the collar open. Key point two: wear a smooth belt and structured shoes. Key point three: steam only the front placket and cuffs.",
+    "ocr_text": "linen shirt, structured shoes, smooth belt"
+  },
+  {
+    "note_id": "mock_fitness_001",
+    "source_url": "https://www.xiaohongshu.com/explore/mock_fitness_001",
+    "title": "Desk mobility routine after long focus blocks",
+    "author": "Move Minutes",
+    "author_url": "https://www.xiaohongshu.com/user/profile/move-minutes",
+    "collected_date": "2026-06-12",
+    "raw_text": "A six minute mobility sequence for shoulders and hips after sitting. Step 1: neck circles for thirty seconds. Step 2: doorway chest opener for one minute. Step 3: seated figure-four stretch. Step 4: hip flexor lunge with gentle breathing.",
+    "ocr_text": "six minute mobility, shoulders, hips"
+  },
+  {
+    "note_id": "mock_fitness_002",
+    "source_url": "https://www.xiaohongshu.com/explore/mock_fitness_002",
+    "title": "Beginner strength plan with two dumbbells",
+    "author": "Small Space Strength",
+    "author_url": "https://www.xiaohongshu.com/user/profile/small-space-strength",
+    "collected_date": "2026-06-15",
+    "raw_text": "Three day workout rotation for small apartments. Day one is goblet squat, row, dead bug. Day two is Romanian deadlift, floor press, side plank. Day three is reverse lunge, shoulder press, suitcase carry. Keep two reps in reserve.",
+    "ocr_text": "dumbbells, strength, three day rotation"
+  },
+  {
+    "note_id": "mock_work_001",
+    "source_url": "https://www.xiaohongshu.com/explore/mock_work_001",
+    "title": "Meeting notes template that turns into tasks",
+    "author": "Operator Notes",
+    "author_url": "https://www.xiaohongshu.com/user/profile/operator-notes",
+    "collected_date": "2026-06-17",
+    "raw_text": "A work meeting template with sections for decision, owner, deadline, open question, and follow-up message. The author uses it in Notion and copies the action rows into a weekly task list after each meeting.",
+    "ocr_text": "decision, owner, deadline, follow-up"
+  },
+  {
+    "note_id": "mock_work_002",
+    "source_url": "https://www.xiaohongshu.com/explore/mock_work_002",
+    "title": "Focus calendar for mixed research and admin days",
+    "author": "Calendar Clinic",
+    "author_url": "https://www.xiaohongshu.com/user/profile/calendar-clinic",
+    "collected_date": "2026-06-19",
+    "raw_text": "The workflow groups research blocks before lunch and admin blocks after lunch. Email gets two scheduled windows. The rule is no calendar block under twenty five minutes unless it is a phone call or commute buffer.",
+    "ocr_text": "research blocks, admin, email windows"
+  },
+  {
+    "note_id": "mock_study_001",
+    "source_url": "https://www.xiaohongshu.com/explore/mock_study_001",
+    "title": "Language study loop with shadowing and Anki",
+    "author": "Twenty Minute Study",
+    "author_url": "https://www.xiaohongshu.com/user/profile/twenty-minute-study",
+    "collected_date": "2026-06-22",
+    "raw_text": "A study loop for language listening. Step 1: listen once without subtitles. Step 2: shadow two sentences. Step 3: save only three phrases into Anki. Step 4: record a one minute recap using the new phrases.",
+    "ocr_text": "shadowing, Anki, three phrases"
+  },
+  {
+    "note_id": "mock_study_002",
+    "source_url": "https://www.xiaohongshu.com/explore/mock_study_002",
+    "title": "Paper reading notes for dense methods sections",
+    "author": "Method Desk",
+    "author_url": "https://www.xiaohongshu.com/user/profile/method-desk",
+    "collected_date": "2026-06-24",
+    "raw_text": "The reading checklist separates claim, dataset, method, assumption, metric, and limitation. The post recommends writing one plain-English sentence per figure before reading the caption deeply.",
+    "ocr_text": "claim, dataset, method, assumption, metric"
+  },
+  {
+    "note_id": "mock_life_001",
+    "source_url": "https://www.xiaohongshu.com/explore/mock_life_001",
+    "title": "Sunday reset routine for a small apartment",
+    "author": "Tiny Home Reset",
+    "author_url": "https://www.xiaohongshu.com/user/profile/tiny-home-reset",
+    "collected_date": "2026-06-27",
+    "raw_text": "A home routine that uses three baskets: laundry, returns, and paperwork. Start by clearing surfaces, then run laundry, then reset the desk. The routine avoids deep cleaning and focuses on making Monday morning calmer.",
+    "ocr_text": "three baskets, desk reset, Monday calm"
+  },
+  {
+    "note_id": "mock_life_002",
+    "source_url": "https://www.xiaohongshu.com/explore/mock_life_002",
+    "title": "No spend month budget board",
+    "author": "Gentle Budget",
+    "author_url": "https://www.xiaohongshu.com/user/profile/gentle-budget",
+    "collected_date": "2026-06-30",
+    "raw_text": "A visual budget board for a no spend month. The columns are needs, planned treats, free activities, repair before buying, and wishlist parking lot. The post suggests reviewing the board every Friday evening.",
+    "ocr_text": "needs, planned treats, wishlist parking lot"
+  }
+]
