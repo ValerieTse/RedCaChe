@@ -16,10 +16,11 @@ def test_note_id_extraction_from_common_xhs_urls():
         extract_note_id_from_url("https://www.xiaohongshu.com/discovery/item/77xyz")
         == "77xyz"
     )
+    assert extract_note_id_from_url("https://www.rednote.com/explore/red123") == "red123"
 
 
 def test_normalization_generates_stable_note_id_when_missing():
-    url = "https://www.xiaohongshu.com/explore/"
+    url = "https://www.rednote.com/explore/"
     normalized = normalize_extracted_post(
         {
             "source_url": url,
@@ -59,14 +60,14 @@ def test_static_html_extraction_collects_note_cards():
         <span class="title">Desk routine</span>
         <span class="author">Operator Notes</span>
       </a>
-      <a class="note-item" href="https://www.xiaohongshu.com/discovery/item/mocknote002">
+      <a class="note-item" href="https://www.rednote.com/discovery/item/mocknote002">
         <img data-src="https://img.example/two.jpg">
         <span>Language study loop</span>
       </a>
     </main>
     """
 
-    posts = extract_posts_from_html(html, "https://www.xiaohongshu.com/user/profile/me")
+    posts = extract_posts_from_html(html, "https://www.rednote.com/explore")
 
     assert len(posts) == 2
     assert posts[0].note_id == "mocknote001"

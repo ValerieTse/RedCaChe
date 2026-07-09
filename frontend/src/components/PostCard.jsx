@@ -14,7 +14,12 @@ function PostCard({ post, onStatusChange, onNotesSave }) {
   const [notes, setNotes] = useState(post.my_notes || "");
   const keyPoints = post.key_points_json || [];
   const tags = post.tags_json || [];
-  const sourceLabel = post.import_source === "xiaohongshu" ? "Xiaohongshu" : "Mock";
+  const sourceLabels = {
+    mock: "Mock",
+    xiaohongshu: "Xiaohongshu",
+    rednote: "RedNote",
+  };
+  const sourceLabel = sourceLabels[post.import_source] || post.import_source || "Mock";
 
   return (
     <article className="post-card">

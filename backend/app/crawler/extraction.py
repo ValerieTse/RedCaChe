@@ -9,6 +9,9 @@ from urllib.parse import urldefrag, urljoin, urlparse
 from app.crawler.selectors import LINK_PATH_HINTS
 
 
+DEFAULT_NOTE_DOMAINS = ("www.rednote.com", "rednote.com", "www.xiaohongshu.com", "xiaohongshu.com")
+
+
 NOTE_ID_PATTERNS = [
     re.compile(r"/explore/([A-Za-z0-9_-]+)"),
     re.compile(r"/discovery/item/([A-Za-z0-9_-]+)"),
@@ -30,7 +33,7 @@ class ExtractedFavorite:
 
 
 def canonicalize_url(url: str, base_url: str | None = None) -> str:
-    absolute = urljoin(base_url or "https://www.xiaohongshu.com/", url)
+    absolute = urljoin(base_url or "https://www.rednote.com/", url)
     without_fragment, _ = urldefrag(absolute)
     return without_fragment
 
@@ -48,9 +51,17 @@ def stable_note_id_from_url(url: str) -> str:
     return f"url_{digest}"
 
 
-def looks_like_note_url(url: str) -> bool:
+def _host_matches(host: str, allowed_domains: tuple[str, ...]) -> bool:
+    normalized_host = host.lower().split(":")[0]
+    return any(
+        normalized_host == domain.lower() or normalized_host.endswith(f".{domain.lower()}")
+        for domain in allowed_domains
+    )
+
+
+def looks_like_note_url(url: str, allowed_domains: tuple[str, ...] = DEFAULT_NOTE_DOMAINS) -> bool:
     parsed = urlparse(url)
-    if "xiaohongshu.com" not in parsed.netloc:
+    if not _host_matches(parsed.netloc, allowed_domains):
         return False
     return any(hint in parsed.path for hint in LINK_PATH_HINTS)
 
@@ -64,12 +75,16 @@ def _first_content_line(text: str | None) -> str | None:
     return None
 
 
-def normalize_extracted_post(payload: dict, base_url: str | None = None) -> ExtractedFavorite | None:
+def normalize_extracted_post(
+    payload: dict,
+    base_url: str | None = None,
+    allowed_domains: tuple[str, ...] = DEFAULT_NOTE_DOMAINS,
+) -> ExtractedFavorite | None:
     href = payload.get("source_url") or payload.get("href")
     if not href:
         return None
     source_url = canonicalize_url(str(href), base_url)
-    if not looks_like_note_url(source_url):
+    if not looks_like_note_url(source_url, allowed_domains=allowed_domains):
         return None
 
     visible_text = (payload.get("visible_text") or payload.get("text") or "").strip()
@@ -82,7 +97,7 @@ def normalize_extracted_post(payload: dict, base_url: str | None = None) -> Extr
     return ExtractedFavorite(
         source_url=source_url,
         note_id=str(note_id),
-        title=title or "Untitled Xiaohongshu saved post",
+        title=title or "Untitled saved post",
         author=(payload.get("author") or None),
         visible_text=visible_text or None,
         thumbnail_url=(payload.get("thumbnail_url") or payload.get("image_url") or None),

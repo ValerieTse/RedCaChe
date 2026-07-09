@@ -1,8 +1,8 @@
-"""Configurable selectors and page-state hints for visible Xiaohongshu import.
+"""Configurable selectors and page-state hints for visible RedNote/Xiaohongshu import.
 
-Xiaohongshu changes markup often. Treat these selectors as editable hints, not
-as a guarantee. The extractor also falls back to URL/text heuristics so import
-does not depend on a single fragile selector.
+Both sites can change markup often. Treat these selectors as editable hints,
+not as a guarantee. The extractor also falls back to URL/text heuristics so
+import does not depend on a single fragile selector.
 """
 
 CARD_SELECTORS = [
@@ -44,9 +44,16 @@ LOGIN_OR_CHALLENGE_URL_HINTS = [
     "security",
 ]
 
-LOGIN_OR_CHALLENGE_TEXT_HINTS = [
+LOGIN_TEXT_HINTS = [
     "登录",
     "扫码登录",
+    "手机号登录",
+    "密码登录",
+    "login",
+    "sign in",
+]
+
+CHALLENGE_TEXT_HINTS = [
     "验证码",
     "安全验证",
     "滑动验证",
@@ -55,4 +62,26 @@ LOGIN_OR_CHALLENGE_TEXT_HINTS = [
     "verify",
     "verification",
     "security check",
+]
+
+LOGIN_OR_CHALLENGE_TEXT_HINTS = [
+    *LOGIN_TEXT_HINTS,
+    *CHALLENGE_TEXT_HINTS,
+]
+
+AUTHENTICATED_TEXT_HINTS = [
+    "消息",
+    "通知",
+    "发布",
+    "创作中心",
+    "我的",
+    "退出登录",
+    "个人主页",
+]
+
+AUTHENTICATED_SELECTOR_HINTS = [
+    "a[href*='/user/profile/']",
+    "[class*='avatar']",
+    "[class*='user']",
+    "[class*='profile']",
 ]

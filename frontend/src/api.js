@@ -69,6 +69,17 @@ export function openCrawlerLogin(loginUrl = null) {
   });
 }
 
+export function checkCrawlerLogin(url = null) {
+  return request("/crawler/check-login", {
+    method: "POST",
+    body: JSON.stringify({ url }),
+  });
+}
+
+export function debugCrawlerProfile() {
+  return request("/crawler/debug-profile", { method: "POST" });
+}
+
 export function importVisibleFavorites({ favoritesUrl, maxScrolls } = {}) {
   return request("/crawler/import-visible-favorites", {
     method: "POST",

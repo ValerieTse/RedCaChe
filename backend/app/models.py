@@ -64,6 +64,7 @@ class UnfavoriteStatus(str, Enum):
 class ImportSource(str, Enum):
     MOCK = "mock"
     XIAOHONGSHU = "xiaohongshu"
+    REDNOTE = "rednote"
 
 
 class Post(Base):
@@ -129,3 +130,5 @@ class ImportRun(Base):
     failed_count: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     stopped_reason: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    expected_domain: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    received_url: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)

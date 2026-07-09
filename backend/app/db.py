@@ -43,6 +43,17 @@ def _run_sqlite_additive_migrations() -> None:
             if column_name not in existing_columns:
                 connection.execute(text(statement))
 
+    if "import_runs" in inspector.get_table_names():
+        run_columns = {column["name"] for column in inspector.get_columns("import_runs")}
+        run_additions = {
+            "expected_domain": "ALTER TABLE import_runs ADD COLUMN expected_domain VARCHAR(255)",
+            "received_url": "ALTER TABLE import_runs ADD COLUMN received_url VARCHAR(2048)",
+        }
+        with engine.begin() as connection:
+            for column_name, statement in run_additions.items():
+                if column_name not in run_columns:
+                    connection.execute(text(statement))
+
 
 def get_db() -> Generator[Session, None, None]:
     db = SessionLocal()

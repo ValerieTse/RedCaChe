@@ -73,13 +73,15 @@ def test_import_run_schema_has_required_columns():
         "failed_count",
         "stopped_reason",
         "error_message",
+        "expected_domain",
+        "received_url",
     }
 
     assert expected.issubset(columns)
 
 
 def test_allowed_categories_and_review_statuses_are_explicit():
-    assert [source.value for source in ImportSource] == ["mock", "xiaohongshu"]
+    assert [source.value for source in ImportSource] == ["mock", "xiaohongshu", "rednote"]
     assert [category.value for category in Category] == [
         "Beauty",
         "Fashion",

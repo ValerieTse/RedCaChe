@@ -235,6 +235,7 @@ a:hover {
 
 .field select,
 .setting-field input,
+.setting-field select,
 .notes-row textarea {
   background: #ffffff;
   border: 1px solid var(--line);
@@ -368,6 +369,11 @@ a:hover {
   color: var(--red);
 }
 
+.source-rednote {
+  background: #f8e4e2;
+  color: var(--red);
+}
+
 .source-mock {
   background: #edf0f2;
   color: #59636b;
@@ -492,6 +498,32 @@ a:hover {
   flex-wrap: wrap;
   gap: 10px;
   margin: 16px 0;
+}
+
+.instructions-panel,
+.warning-panel {
+  background: #ffffff;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  margin-top: 14px;
+  padding: 14px;
+}
+
+.instructions-panel ol {
+  color: #334047;
+  margin: 0;
+  padding-left: 22px;
+}
+
+.instructions-panel li + li {
+  margin-top: 4px;
+}
+
+.warning-panel {
+  background: #fff4f2;
+  border-color: #ecc0bb;
+  color: var(--red);
+  margin-bottom: 14px;
 }
 
 .report-grid {

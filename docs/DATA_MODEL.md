@@ -61,6 +61,7 @@ The `import_runs` table records visible import attempts.
 
 - `mock`
 - `xiaohongshu`
+- `rednote`
 
 ## Allowed Categories
 

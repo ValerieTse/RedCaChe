@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
@@ -7,6 +9,9 @@ from app.config import Settings, get_settings
 from app.crawler.importer import CrawlerService
 from app.db import get_db
 from app.schemas import (
+    CrawlerCheckLoginRequest,
+    CrawlerCheckLoginResponse,
+    CrawlerDebugProfileResponse,
     CrawlerOpenLoginRequest,
     CrawlerOpenLoginResponse,
     ImportVisibleFavoritesRequest,
@@ -22,13 +27,19 @@ def get_crawler_service(settings: Settings = Depends(get_settings)) -> CrawlerSe
 
 
 @router.get("/settings")
-def get_crawler_settings(settings: Settings = Depends(get_settings)) -> dict[str, str | int]:
+def get_crawler_settings(settings: Settings = Depends(get_settings)) -> dict[str, Any]:
     return {
-        "login_url": settings.xhs_login_url,
+        "active_site_key": settings.active_site_key,
+        "active_site_display_name": settings.active_site_display_name,
+        "active_base_url": settings.active_base_url,
+        "active_explore_url": settings.active_explore_url,
+        "active_allowed_domains": settings.active_allowed_domains,
+        "login_url": settings.active_explore_url,
         "favorites_url": settings.xhs_favorites_url,
-        "profile_dir": str(settings.playwright_profile_dir),
+        "profile_dir": str(settings.playwright_profile_dir.resolve()),
         "scroll_steps": settings.crawler_scroll_steps,
         "scroll_pause_ms": settings.crawler_scroll_pause_ms,
+        "use_system_chrome": settings.xhs_use_system_chrome,
     }
 
 
@@ -38,6 +49,21 @@ async def open_login_browser(
     service: CrawlerService = Depends(get_crawler_service),
 ) -> dict:
     return await service.open_login_browser(login_url=payload.login_url if payload else None)
+
+
+@router.post("/check-login", response_model=CrawlerCheckLoginResponse)
+async def check_login_status(
+    payload: CrawlerCheckLoginRequest | None = None,
+    service: CrawlerService = Depends(get_crawler_service),
+) -> dict:
+    return await service.check_login(url=payload.url if payload else None)
+
+
+@router.post("/debug-profile", response_model=CrawlerDebugProfileResponse)
+async def debug_profile(
+    service: CrawlerService = Depends(get_crawler_service),
+) -> dict:
+    return service.debug_profile()
 
 
 @router.post("/import-visible-favorites", response_model=ImportVisibleFavoritesResponse)

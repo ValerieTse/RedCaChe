@@ -82,6 +82,46 @@ class CrawlerOpenLoginResponse(BaseModel):
     message: str
     login_url: str
     profile_dir: str
+    active_site_key: str
+    active_site_display_name: str
+    active_base_url: str
+    using_system_chrome: bool = False
+    launch_fallback_reason: Optional[str] = None
+
+
+class CrawlerCheckLoginRequest(BaseModel):
+    url: Optional[str] = None
+
+
+class CrawlerCheckLoginResponse(BaseModel):
+    active_site_key: str
+    active_site_display_name: str
+    active_base_url: str
+    current_url: str
+    page_title: str
+    detected_state: str
+    visible_text_sample: str
+    profile_dir: str
+    using_system_chrome: bool
+    cookies_count_for_domain: Optional[int] = None
+    local_storage_keys_count: Optional[int] = None
+    screenshot_path: Optional[str] = None
+
+
+class CrawlerDebugProfileResponse(BaseModel):
+    active_site_key: str
+    active_site_display_name: str
+    active_base_url: str
+    profile_dir: str
+    profile_dir_exists: bool
+    profile_dir_size_bytes: int
+    common_profile_files: dict[str, bool]
+    system_chrome_enabled: bool
+    using_system_chrome: bool
+    system_chrome_launch_succeeded_last_time: Optional[bool] = None
+    launch_fallback_reason: Optional[str] = None
+    last_browser_launch_timestamp: Optional[str] = None
+    last_login_check_result: Optional[dict] = None
 
 
 class ImportVisibleFavoritesRequest(BaseModel):
@@ -97,6 +137,8 @@ class ImportVisibleFavoritesResponse(BaseModel):
     failed_count: int
     stopped_reason: Optional[str] = None
     error_message: Optional[str] = None
+    expected_domain: Optional[str] = None
+    received_url: Optional[str] = None
 
 
 class ImportRunRead(BaseModel):
@@ -112,6 +154,8 @@ class ImportRunRead(BaseModel):
     failed_count: int
     stopped_reason: Optional[str] = None
     error_message: Optional[str] = None
+    expected_domain: Optional[str] = None
+    received_url: Optional[str] = None
 
 
 class DailyReviewResponse(BaseModel):
