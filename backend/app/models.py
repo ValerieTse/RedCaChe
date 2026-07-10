@@ -109,6 +109,7 @@ class Post(Base):
     review_status: Mapped[str] = mapped_column(
         String(32), default=ReviewStatus.UNREVIEWED.value, nullable=False, index=True
     )
+    from_initial_import: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     xhs_favorite_status: Mapped[str] = mapped_column(
         String(32), default=XhsFavoriteStatus.FAVORITED.value, nullable=False
     )
@@ -146,6 +147,29 @@ class ImportRun(Base):
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     expected_domain: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     received_url: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)
+
+
+class AppConfig(Base):
+    """Single-row store for runtime, user-editable configuration.
+
+    Holds the choices an end user makes in onboarding (site mode, favorites URL,
+    which categories are active, whether onboarding is done) so the app can be
+    configured from the UI instead of environment variables.
+    """
+
+    __tablename__ = "app_config"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
+    site_mode: Mapped[str] = mapped_column(String(32), default="rednote", nullable=False)
+    favorites_url: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)
+    selected_category_slugs: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
+    custom_categories: Mapped[list[dict]] = mapped_column(JSON, default=list, nullable=False)
+    onboarding_completed: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    locale: Mapped[str] = mapped_column(String(8), default="zh", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=utc_now, onupdate=utc_now, nullable=False
+    )
 
 
 class ReviewWindow(Base):

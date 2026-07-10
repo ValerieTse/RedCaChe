@@ -22,7 +22,8 @@ def test_mock_ai_classifies_short_title():
     )
 
     assert result.ai_summary is None
-    assert result.category == Category.FASHION.value
+    # Knitting keywords now live in the dedicated Handcraft category.
+    assert result.category == "Handcraft"
 
 
 def test_mock_ai_category_falls_back_to_uncategorized():

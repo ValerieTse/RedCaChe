@@ -150,15 +150,43 @@ export function inspectCrawlerPage({
   });
 }
 
-export function importVisibleFavorites({ favoritesUrl, maxScrolls, initialReviewStatus } = {}) {
+export function importVisibleFavorites({ favoritesUrl, maxScrolls, initialReviewStatus, headless } = {}) {
   return request("/crawler/import-visible-favorites", {
     method: "POST",
     body: JSON.stringify({
       favorites_url: favoritesUrl || null,
       max_scrolls: maxScrolls || null,
       initial_review_status: initialReviewStatus || undefined,
+      headless: headless || false,
     }),
   });
+}
+
+export function getConfig() {
+  return request("/config");
+}
+
+export function patchConfig(patch) {
+  return request("/config", {
+    method: "PATCH",
+    body: JSON.stringify(patch),
+  });
+}
+
+export function getCategories() {
+  return request("/categories");
+}
+
+export function getCategoryPresets() {
+  return request("/categories/presets");
+}
+
+export function reclassifyPosts() {
+  return request("/categories/reclassify", { method: "POST" });
+}
+
+export function detectFavoritesUrl() {
+  return request("/crawler/detect-favorites-url", { method: "POST" });
 }
 
 export { API_BASE };

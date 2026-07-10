@@ -23,16 +23,21 @@ class VisibleBrowserManager:
         self._playwright: Any | None = None
         self._context: Any | None = None
         self._profile_dir: str | None = None
+        self._headless: bool = False
         self.last_launch_timestamp: str | None = None
         self.last_used_system_chrome: bool = False
         self.last_system_chrome_launch_succeeded: bool | None = None
         self.last_launch_fallback_reason: str | None = None
         self.last_login_check_result: dict | None = None
 
-    async def get_context(self, settings: Settings):
+    async def get_context(self, settings: Settings, headless: bool = False):
         async with self._lock:
             requested_profile_dir = str(settings.playwright_profile_dir.resolve())
-            if self._context_is_alive() and self._profile_dir == requested_profile_dir:
+            if (
+                self._context_is_alive()
+                and self._profile_dir == requested_profile_dir
+                and self._headless == headless
+            ):
                 return self._context
             self._context = None
             self._profile_dir = None
@@ -48,26 +53,28 @@ class VisibleBrowserManager:
             settings.playwright_profile_dir.mkdir(parents=True, exist_ok=True)
             resolved_profile_dir = settings.playwright_profile_dir.resolve()
             logger.info(
-                "Launching visible %s browser with profile: %s",
+                "Launching %s %s browser with profile: %s",
+                "headless" if headless else "visible",
                 settings.active_site_display_name,
                 resolved_profile_dir,
             )
             self._playwright = await async_playwright().start()
             try:
-                self._context = await self._launch_persistent_context(settings)
+                self._context = await self._launch_persistent_context(settings, headless)
             except Exception as exc:
                 await self._stop_playwright()
                 raise PlaywrightUnavailableError(
-                    "Could not launch visible Chromium. Run `python -m playwright install chromium`."
+                    "Could not launch Chromium. Run `python -m playwright install chromium`."
                 ) from exc
             self.last_launch_timestamp = utc_now().isoformat()
             self._profile_dir = requested_profile_dir
+            self._headless = headless
             return self._context
 
-    async def _launch_persistent_context(self, settings: Settings):
+    async def _launch_persistent_context(self, settings: Settings, headless: bool = False):
         launch_options = {
             "user_data_dir": str(settings.playwright_profile_dir.resolve()),
-            "headless": False,
+            "headless": headless,
             "viewport": {"width": 1440, "height": 1000},
             "args": ["--disable-blink-features=AutomationControlled"],
         }
@@ -99,11 +106,12 @@ class VisibleBrowserManager:
             self.last_launch_fallback_reason = None
         return context
 
-    async def open_page(self, settings: Settings, url: str):
-        context = await self.get_context(settings)
+    async def open_page(self, settings: Settings, url: str, headless: bool = False):
+        context = await self.get_context(settings, headless=headless)
         page = context.pages[0] if context.pages else await context.new_page()
         await page.goto(url, wait_until="domcontentloaded", timeout=settings.crawler_page_load_timeout_ms)
-        await page.bring_to_front()
+        if not headless:
+            await page.bring_to_front()
         return page
 
     def _context_is_alive(self) -> bool:

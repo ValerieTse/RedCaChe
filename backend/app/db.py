@@ -45,6 +45,9 @@ def _run_sqlite_additive_migrations() -> None:
             "ALTER TABLE posts ADD COLUMN enrichment_status VARCHAR(32) DEFAULT 'not_enriched' NOT NULL"
         ),
         "enriched_at": "ALTER TABLE posts ADD COLUMN enriched_at DATETIME",
+        "from_initial_import": (
+            "ALTER TABLE posts ADD COLUMN from_initial_import BOOLEAN DEFAULT 0 NOT NULL"
+        ),
     }
     with engine.begin() as connection:
         for column_name, statement in additions.items():

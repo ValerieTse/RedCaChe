@@ -5,9 +5,10 @@ from typing import Any
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.config import Settings, get_settings
+from app.config import Settings
 from app.crawler.importer import CrawlerService
 from app.db import get_db
+from app.dependencies import get_effective_settings
 from app.schemas import (
     CrawlerCheckLoginRequest,
     CrawlerCheckLoginResponse,
@@ -18,6 +19,7 @@ from app.schemas import (
     CrawlerOpenLoginResponse,
     CrawlerOpenPostRequest,
     CrawlerOpenPostResponse,
+    DetectFavoritesUrlResponse,
     ImportVisibleFavoritesRequest,
     ImportVisibleFavoritesResponse,
 )
@@ -26,12 +28,12 @@ from app.schemas import (
 router = APIRouter(prefix="/crawler", tags=["crawler"])
 
 
-def get_crawler_service(settings: Settings = Depends(get_settings)) -> CrawlerService:
+def get_crawler_service(settings: Settings = Depends(get_effective_settings)) -> CrawlerService:
     return CrawlerService(settings)
 
 
 @router.get("/settings")
-def get_crawler_settings(settings: Settings = Depends(get_settings)) -> dict[str, Any]:
+def get_crawler_settings(settings: Settings = Depends(get_effective_settings)) -> dict[str, Any]:
     return {
         "active_site_key": settings.active_site_key,
         "active_site_display_name": settings.active_site_display_name,
@@ -93,6 +95,13 @@ async def inspect_page(
     )
 
 
+@router.post("/detect-favorites-url", response_model=DetectFavoritesUrlResponse)
+async def detect_favorites_url(
+    service: CrawlerService = Depends(get_crawler_service),
+) -> dict:
+    return await service.detect_favorites_url()
+
+
 @router.post("/import-visible-favorites", response_model=ImportVisibleFavoritesResponse)
 async def import_visible_favorites(
     payload: ImportVisibleFavoritesRequest | None = None,
@@ -104,5 +113,6 @@ async def import_visible_favorites(
         favorites_url=payload.favorites_url if payload else None,
         max_scrolls=payload.max_scrolls if payload else None,
         initial_review_status=payload.initial_review_status if payload else None,
+        headless=payload.headless if payload else False,
     )
     return ImportVisibleFavoritesResponse.model_validate(run, from_attributes=True)

@@ -3,9 +3,10 @@ from __future__ import annotations
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
-from app.config import Settings, get_settings
+from app.config import Settings
 from app.crawler.importer import CrawlerService
 from app.db import get_db
+from app.dependencies import get_effective_settings
 from app.models import ReviewStatus, ReviewWindow
 from app.schemas import DailyReviewResponse
 from app.services.review_windows import (
@@ -13,7 +14,7 @@ from app.services.review_windows import (
     create_manual_window,
     latest_manual_window,
     manual_window_start,
-    posts_for_window,
+    posts_for_daily_queue,
     response_datetimes,
     review_date_for,
 )
@@ -27,7 +28,7 @@ router = APIRouter(prefix="/review", tags=["review"])
 def get_daily_review(
     limit: int = Query(default=100, ge=1, le=500),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
+    settings: Settings = Depends(get_effective_settings),
 ) -> DailyReviewResponse:
     saved_window = latest_manual_window(db)
     if saved_window is not None:
@@ -37,7 +38,7 @@ def get_daily_review(
     return _build_response(db, settings, None, limit, start=start, end=end)
 
 
-def get_crawler_service(settings: Settings = Depends(get_settings)) -> CrawlerService:
+def get_crawler_service(settings: Settings = Depends(get_effective_settings)) -> CrawlerService:
     return CrawlerService(settings)
 
 
@@ -45,7 +46,7 @@ def get_crawler_service(settings: Settings = Depends(get_settings)) -> CrawlerSe
 async def update_daily_review(
     limit: int = Query(default=100, ge=1, le=500),
     db: Session = Depends(get_db),
-    settings: Settings = Depends(get_settings),
+    settings: Settings = Depends(get_effective_settings),
     service: CrawlerService = Depends(get_crawler_service),
 ) -> DailyReviewResponse:
     start = manual_window_start(db, settings)
@@ -54,6 +55,7 @@ async def update_daily_review(
             db,
             favorites_url=settings.xhs_favorites_url,
             initial_review_status=ReviewStatus.UNREVIEWED,
+            headless=True,
         )
     start, end = create_manual_window(db, settings, now=utc_now(), started_at=start)
     return _build_response(db, settings, None, limit, start=start, end=end, mode="manual_update")
@@ -75,7 +77,9 @@ def _build_response(
         mode = saved_window.mode
     assert start is not None and end is not None
 
-    posts = posts_for_window(db, start, end, limit)
+    # The window is fetch-history metadata only; the queue itself is
+    # status-based, so unreviewed posts stay visible across updates.
+    posts = posts_for_daily_queue(db, limit)
     response_start, response_end = response_datetimes(start, end)
     return DailyReviewResponse(
         review_date=review_date_for(end, settings),

@@ -1,19 +1,21 @@
 import {
   Archive,
   ClipboardCheck,
-  Database,
   LayoutDashboard,
   Languages,
   Leaf,
+  Loader2,
   Settings as SettingsIcon,
   Sparkles,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { getConfig } from "./api.js";
 import { useI18n } from "./i18n.jsx";
 import Archived from "./pages/Archived.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import DailyReview from "./pages/DailyReview.jsx";
 import Evergreen from "./pages/Evergreen.jsx";
+import Onboarding from "./pages/Onboarding.jsx";
 import RemoveCheck from "./pages/RemoveCheck.jsx";
 import Settings from "./pages/Settings.jsx";
 
@@ -29,13 +31,32 @@ const tabs = [
 function App() {
   const { language, setLanguage, t } = useI18n();
   const [activeTab, setActiveTab] = useState(getTabFromHash);
+  const [onboarded, setOnboarded] = useState(null);
   const ActivePage = tabs.find((tab) => tab.id === activeTab).component;
+
+  useEffect(() => {
+    getConfig()
+      .then((config) => setOnboarded(Boolean(config.onboarding_completed)))
+      .catch(() => setOnboarded(true));
+  }, []);
 
   useEffect(() => {
     const syncHash = () => setActiveTab(getTabFromHash());
     window.addEventListener("hashchange", syncHash);
     return () => window.removeEventListener("hashchange", syncHash);
   }, []);
+
+  if (onboarded === null) {
+    return (
+      <div className="app-loading">
+        <Loader2 className="spin" size={28} aria-hidden="true" />
+      </div>
+    );
+  }
+
+  if (!onboarded) {
+    return <Onboarding onComplete={() => window.location.reload()} />;
+  }
 
   function navigate(tabId) {
     window.location.hash = tabId;
@@ -46,7 +67,6 @@ function App() {
     <div className="app-shell">
       <aside className="sidebar">
         <div className="brand">
-          <Database size={24} aria-hidden="true" />
           <div>
             <strong>RedCache</strong>
             <span>{t("app.tagline")}</span>

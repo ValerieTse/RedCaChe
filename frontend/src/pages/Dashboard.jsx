@@ -9,7 +9,12 @@ import FilterBar from "../components/FilterBar.jsx";
 import PostCard from "../components/PostCard.jsx";
 import { useI18n } from "../i18n.jsx";
 
-const hiddenLibraryStatuses = new Set(["remove_from_xhs", "archived"]);
+// Library shows kept posts plus the initial-import backlog awaiting review.
+// Posts fetched later stay in Daily Review until the user picks a status.
+function isLibraryPost(post) {
+  if (post.review_status === "keep") return true;
+  return post.review_status === "unreviewed" && post.from_initial_import;
+}
 
 function Dashboard() {
   const { t } = useI18n();
@@ -28,7 +33,7 @@ function Dashboard() {
     setMessage("");
     try {
       const data = await listPosts({ category });
-      const visiblePosts = data.posts.filter((post) => !hiddenLibraryStatuses.has(post.review_status));
+      const visiblePosts = data.posts.filter(isLibraryPost);
       setPosts(visiblePosts);
       setTotal(visiblePosts.length);
     } catch (error) {
@@ -40,7 +45,7 @@ function Dashboard() {
 
   async function handleStatusChange(id, reviewStatus) {
     const updated = await updatePostStatus(id, reviewStatus);
-    if (hiddenLibraryStatuses.has(updated.review_status)) {
+    if (!isLibraryPost(updated)) {
       setPosts((current) => current.filter((post) => post.id !== id));
       setTotal((current) => Math.max(0, current - 1));
     } else {

@@ -46,6 +46,7 @@ class PostRead(BaseModel):
     tags_json: list[str] = Field(default_factory=list)
     my_notes: Optional[str] = None
     review_status: str
+    from_initial_import: bool = False
     xhs_favorite_status: str
     backup_status: Optional[str] = None
     restore_status: str
@@ -72,7 +73,7 @@ class PostNotesUpdate(BaseModel):
 
 
 class PostCategoryUpdate(BaseModel):
-    category: Category
+    category: str
 
 
 class BulkPostIdsRequest(BaseModel):
@@ -246,6 +247,7 @@ class ImportVisibleFavoritesRequest(BaseModel):
     favorites_url: Optional[str] = None
     max_scrolls: Optional[int] = Field(default=None, ge=1, le=500)
     initial_review_status: ReviewStatus = ReviewStatus.UNREVIEWED
+    headless: bool = False
 
 
 class ImportVisibleFavoritesResponse(BaseModel):
@@ -300,6 +302,59 @@ class ExportResponse(BaseModel):
     output_path: str
     exported_count: int
     skipped_count: int
+
+
+class CustomCategoryInput(BaseModel):
+    name: str
+    keywords: list[str] = Field(default_factory=list)
+
+
+class AppConfigUpdate(BaseModel):
+    site_mode: Optional[str] = None
+    favorites_url: Optional[str] = None
+    selected_category_slugs: Optional[list[str]] = None
+    custom_categories: Optional[list[CustomCategoryInput]] = None
+    onboarding_completed: Optional[bool] = None
+    locale: Optional[str] = None
+
+
+class AppConfigRead(BaseModel):
+    site_mode: str
+    favorites_url: Optional[str] = None
+    selected_category_slugs: list[str] = Field(default_factory=list)
+    custom_categories: list[dict] = Field(default_factory=list)
+    onboarding_completed: bool
+    locale: str
+    active_site_key: str
+    active_site_display_name: str
+    active_explore_url: str
+    active_domain: str
+
+
+class CategoryRead(BaseModel):
+    slug: str
+    label_zh: str
+    label_en: str
+    is_custom: bool = False
+
+
+class PresetCategoryRead(BaseModel):
+    slug: str
+    label_zh: str
+    label_en: str
+    keyword_count: int
+
+
+class DetectFavoritesUrlResponse(BaseModel):
+    status: str
+    favorites_url: Optional[str] = None
+    detected_state: Optional[str] = None
+    message: Optional[str] = None
+
+
+class ReclassifyResponse(BaseModel):
+    scanned_count: int
+    updated_count: int
 
 
 class EnumSnapshot(BaseModel):

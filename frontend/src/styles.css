@@ -89,7 +89,7 @@ a:hover {
 }
 
 .brand strong {
-  font-size: 1rem;
+  font-size: 1.5rem;
 }
 
 .brand span {
@@ -384,14 +384,14 @@ a:hover {
   border-radius: 8px;
   display: flex;
   flex-direction: column;
-  height: 700px;
+  min-height: 700px;
   min-width: 0;
   overflow: hidden;
   position: relative;
 }
 
 .post-card.queue-card {
-  height: 700px;
+  min-height: 700px;
 }
 
 .post-card.selected-for-removal {
@@ -427,8 +427,11 @@ a:hover {
 .post-header {
   align-items: flex-start;
   display: block;
+  flex-shrink: 0;
   gap: 12px;
-  min-height: 98px;
+  /* Reserve space for the worst case (2-line title + author) so single- and
+     double-line cards match height and each page's cards stay uniform. */
+  min-height: 108px;
 }
 
 .post-header > div {
@@ -487,6 +490,15 @@ a:hover {
 .manual-category {
   color: var(--muted);
   font-size: 0.72rem;
+}
+
+.unreviewed-badge {
+  background: #fef3c7;
+  border-radius: 999px;
+  color: #92400e;
+  font-size: 0.72rem;
+  padding: 0.1rem 0.55rem;
+  white-space: nowrap;
 }
 
 .post-thumbnail {
@@ -841,6 +853,45 @@ a:hover {
   }
 }
 
+.blocking-overlay {
+  align-items: center;
+  background: rgba(15, 18, 20, 0.55);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  position: fixed;
+  z-index: 9999;
+}
+
+.blocking-overlay-card {
+  align-items: center;
+  background: var(--panel);
+  border-radius: 12px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  max-width: 320px;
+  padding: 30px 36px;
+  text-align: center;
+}
+
+.blocking-overlay-card .spin {
+  color: var(--red);
+}
+
+.blocking-overlay-title {
+  color: var(--ink);
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.blocking-overlay-hint {
+  color: var(--muted);
+  font-size: 0.82rem;
+  line-height: 1.5;
+}
+
 @media (max-width: 860px) {
   .app-shell {
     grid-template-columns: 1fr;
@@ -933,4 +984,263 @@ a:hover {
     grid-column: 2;
     justify-self: start;
   }
+}
+
+/* Onboarding */
+.app-loading {
+  align-items: center;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.app-loading .spin {
+  color: var(--green);
+}
+
+.onboarding {
+  align-items: center;
+  background: #f6f7f4;
+  display: flex;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.onboarding-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.08);
+  display: flex;
+  flex-direction: column;
+  max-width: 720px;
+  width: 100%;
+}
+
+.onboarding-header {
+  border-bottom: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 22px 28px;
+}
+
+.onboarding-header strong {
+  font-size: 1.4rem;
+}
+
+.onboarding-header span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.onboarding-steps {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  list-style: none;
+  margin: 0;
+  padding: 16px 28px 0;
+}
+
+.onboarding-steps li {
+  align-items: center;
+  color: var(--muted);
+  display: flex;
+  font-size: 0.82rem;
+  gap: 6px;
+}
+
+.onboarding-steps li:not(:last-child)::after {
+  color: var(--line);
+  content: "›";
+  margin-left: 8px;
+}
+
+.onboarding-steps li.active {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+.onboarding-steps li.done {
+  color: var(--green);
+}
+
+.step-dot {
+  align-items: center;
+  background: var(--panel-alt);
+  border-radius: 999px;
+  display: inline-flex;
+  height: 22px;
+  justify-content: center;
+  min-width: 22px;
+  font-size: 0.75rem;
+}
+
+.onboarding-steps li.active .step-dot {
+  background: var(--ink);
+  color: #fff;
+}
+
+.onboarding-steps li.done .step-dot {
+  background: var(--green);
+  color: #fff;
+}
+
+.onboarding-body {
+  padding: 20px 28px;
+  min-height: 260px;
+}
+
+.onboarding-section h2 {
+  font-size: 1.15rem;
+  margin: 0 0 6px;
+}
+
+.onboarding-desc {
+  color: var(--muted);
+  font-size: 0.88rem;
+  margin: 0 0 16px;
+}
+
+.region-options {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.region-option {
+  align-items: flex-start;
+  background: var(--panel);
+  border: 1.5px solid var(--line);
+  border-radius: 12px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 18px;
+  text-align: left;
+}
+
+.region-option.selected {
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(47, 125, 90, 0.12);
+}
+
+.region-option span {
+  color: var(--muted);
+  font-size: 0.82rem;
+}
+
+.onboarding-actions-inline {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.login-ok {
+  align-items: center;
+  color: var(--green);
+  display: inline-flex;
+  font-weight: 600;
+  gap: 4px;
+}
+
+.login-pending {
+  color: var(--amber);
+  font-size: 0.85rem;
+}
+
+.category-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.category-chip {
+  background: var(--panel-alt);
+  border: 1.5px solid transparent;
+  border-radius: 999px;
+  cursor: pointer;
+  font-size: 0.86rem;
+  padding: 6px 14px;
+}
+
+.category-chip.selected {
+  background: rgba(47, 125, 90, 0.12);
+  border-color: var(--green);
+  color: var(--green-dark);
+}
+
+.custom-category {
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+}
+
+.custom-category h3 {
+  font-size: 0.98rem;
+  margin: 0 0 6px;
+}
+
+.custom-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.custom-inputs input {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  flex: 1 1 180px;
+  padding: 8px 10px;
+}
+
+.custom-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.custom-tag {
+  align-items: center;
+  background: var(--panel-alt);
+  border-radius: 8px;
+  display: inline-flex;
+  font-size: 0.82rem;
+  gap: 6px;
+  padding: 4px 6px 4px 10px;
+}
+
+.custom-tag button {
+  align-items: center;
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  display: inline-flex;
+}
+
+.onboarding-url {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-bottom: 12px;
+}
+
+.onboarding-url input {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 9px 11px;
+  width: 100%;
+}
+
+.onboarding-footer {
+  border-top: 1px solid var(--line);
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 28px;
 }

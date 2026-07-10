@@ -1,7 +1,7 @@
 import { Archive, Check, ExternalLink, Leaf, Pencil, RotateCcw, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { openPostSource } from "../api.js";
-import { POST_CATEGORIES } from "../categories.js";
+import { useCategories } from "../CategoriesContext.jsx";
 import { useI18n } from "../i18n.jsx";
 import { resolvePostOpenUrl } from "./postLinks.js";
 
@@ -34,10 +34,15 @@ function PostCard({
   onRestore,
 }) {
   const { t } = useI18n();
+  const { categories, labelFor } = useCategories();
   const [notes, setNotes] = useState(post.my_notes || "");
-  const [sourceState, setSourceState] = useState({ loading: false, message: "" });
+  const [openingSource, setOpeningSource] = useState(false);
   const openUrl = resolvePostOpenUrl(post);
   const category = post.category && post.category !== "Other" ? post.category : "Uncategorized";
+  // Keep the post's current category selectable even if it was later disabled.
+  const categoryOptions = categories.some((item) => item.slug === category)
+    ? categories
+    : [{ slug: category }, ...categories];
   const isRemoveCheck = mode === "remove-check";
   const isArchived = mode === "archived";
   const isQueuePage = isRemoveCheck || isArchived;
@@ -49,17 +54,14 @@ function PostCard({
   ].filter(Boolean).join(" ");
 
   async function handleOpenSource() {
-    if (!openUrl || sourceState.loading) return;
-    setSourceState({ loading: true, message: "" });
+    if (!openUrl || openingSource) return;
+    setOpeningSource(true);
     try {
-      const result = await openPostSource(post.id);
-      const stateMessage =
-        result.detected_state && result.detected_state !== "logged_in"
-          ? ` (${result.detected_state})`
-          : "";
-      setSourceState({ loading: false, message: `${t("post.openedInBrowser")}${stateMessage}` });
-    } catch (error) {
-      setSourceState({ loading: false, message: error.message });
+      await openPostSource(post.id);
+    } catch {
+      // Intentionally silent: the visible browser window is the only feedback.
+    } finally {
+      setOpeningSource(false);
     }
   }
 
@@ -97,14 +99,17 @@ function PostCard({
                   onChange={(event) => onCategoryChange(post.id, event.target.value)}
                   aria-label={t("post.editCategoryFor", { title: post.title })}
                 >
-                  {POST_CATEGORIES.map((item) => (
-                    <option value={item} key={item}>
-                      {t(`category.${item}`)}
+                  {categoryOptions.map((item) => (
+                    <option value={item.slug} key={item.slug}>
+                      {labelFor(item.slug)}
                     </option>
                   ))}
                 </select>
               </label>
               {post.category_is_manual ? <span className="manual-category">{t("post.manualCategory")}</span> : null}
+              {!isQueuePage && post.review_status === "unreviewed" ? (
+                <span className="unreviewed-badge">{t("post.unreviewed")}</span>
+              ) : null}
             </div>
             <h2>{post.title}</h2>
             {post.author ? <p className="post-author">{t("post.byAuthor", { author: post.author })}</p> : null}
@@ -113,14 +118,13 @@ function PostCard({
 
         <div className="post-link-row">
           {openUrl ? (
-            <button type="button" className="link-button" onClick={handleOpenSource} disabled={sourceState.loading}>
+            <button type="button" className="link-button" onClick={handleOpenSource} disabled={openingSource}>
               <ExternalLink size={16} aria-hidden="true" />
-              {sourceState.loading ? t("common.loading") : t("post.openSource")}
+              {t("post.openSource")}
             </button>
           ) : (
             <span>{t("post.sourceUnavailable")}</span>
           )}
-          {sourceState.message ? <span className="source-message">{sourceState.message}</span> : null}
         </div>
 
         {isRemoveCheck ? (

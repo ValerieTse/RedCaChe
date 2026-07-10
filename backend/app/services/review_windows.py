@@ -6,7 +6,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.orm import Session
 
 from app.config import Settings
-from app.models import Post, ReviewStatus, ReviewWindow
+from app.models import ImportSource, Post, ReviewStatus, ReviewWindow
 from app.time import utc_now
 
 
@@ -41,13 +41,14 @@ def create_manual_window(
     settings: Settings,
     now: datetime | None = None,
     started_at: datetime | None = None,
+    mode: str = "manual_update",
 ) -> tuple[datetime, datetime]:
     current = now or utc_now()
     start = started_at or manual_window_start(db, settings, current)
     if start > current:
         start = current
 
-    window = ReviewWindow(started_at=start, ended_at=current, mode="manual_update")
+    window = ReviewWindow(started_at=start, ended_at=current, mode=mode)
     db.add(window)
     db.commit()
     db.refresh(window)
@@ -63,18 +64,17 @@ def manual_window_start(db: Session, settings: Settings, now: datetime | None = 
     return previous.ended_at if previous is not None else baseline
 
 
-def posts_for_window(
-    db: Session,
-    start: datetime,
-    end: datetime,
-    limit: int,
-) -> list[Post]:
-    if end <= start:
-        return []
+def posts_for_daily_queue(db: Session, limit: int) -> list[Post]:
+    """Every fetched-later post stays in Daily Review until the user decides.
+
+    Posts from the initial bootstrap import live in the Library instead, and
+    mock sample data never enters the review queue.
+    """
     return (
         db.query(Post)
-        .filter(Post.imported_at > start, Post.imported_at <= end)
         .filter(Post.review_status == ReviewStatus.UNREVIEWED.value)
+        .filter(Post.from_initial_import.is_(False))
+        .filter(Post.import_source != ImportSource.MOCK.value)
         .order_by(Post.imported_at.desc(), Post.id.desc())
         .limit(limit)
         .all()

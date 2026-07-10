@@ -1,4 +1,4 @@
-import { FileDown, RefreshCw } from "lucide-react";
+import { FileDown, Loader2, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   exportDailyReview,
@@ -22,6 +22,7 @@ function DailyReview() {
   const [category, setCategory] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const filteredPosts = category ? posts.filter((post) => post.category === category) : posts;
 
   useEffect(() => {
@@ -43,7 +44,7 @@ function DailyReview() {
   }
 
   async function handleUpdate() {
-    setLoading(true);
+    setUpdating(true);
     setMessage("");
     try {
       const data = await updateDailyReview();
@@ -54,7 +55,7 @@ function DailyReview() {
     } catch (error) {
       setMessage(error.message);
     } finally {
-      setLoading(false);
+      setUpdating(false);
     }
   }
 
@@ -86,13 +87,22 @@ function DailyReview() {
 
   return (
     <section className="page">
+      {updating ? (
+        <div className="blocking-overlay" role="alert" aria-busy="true" aria-live="assertive">
+          <div className="blocking-overlay-card">
+            <Loader2 className="spin" size={34} aria-hidden="true" />
+            <span className="blocking-overlay-title">{t("daily.updating")}</span>
+            <span className="blocking-overlay-hint">{t("daily.updatingHint")}</span>
+          </div>
+        </div>
+      ) : null}
       <header className="page-header">
         <div>
           <h1>{t("daily.title")}</h1>
           <p>{formatReviewWindow(reviewWindow, language, t, reviewDate)} · {t("daily.count", { count: posts.length })}</p>
         </div>
         <div className="button-row">
-          <button className="secondary-button" type="button" onClick={handleUpdate} disabled={loading}>
+          <button className="secondary-button" type="button" onClick={handleUpdate} disabled={loading || updating}>
             <RefreshCw size={18} aria-hidden="true" />
             <span>{t("daily.update")}</span>
           </button>

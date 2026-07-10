@@ -34,9 +34,8 @@ function BackupLibrary() {
     setOpeningPostId(postId);
     try {
       await openPostSource(postId);
-      setMessage(t("post.openedInBrowser"));
-    } catch (error) {
-      setMessage(error.message);
+    } catch {
+      // Intentionally silent: the visible browser window is the only feedback.
     } finally {
       setOpeningPostId(null);
     }

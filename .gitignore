@@ -25,3 +25,9 @@ data/debug/
 
 exports/obsidian/*
 !exports/obsidian/.gitkeep
+
+# Local dev instructions (may contain personal paths/ids)
+CLAUDE.md
+
+# Claude Code local tooling
+.claude/

@@ -64,13 +64,15 @@ class FakeCrawlerService:
             "launch_fallback_reason": None,
         }
 
-    async def import_visible_favorites(self, db, favorites_url=None, max_scrolls=None, initial_review_status=None):
+    async def import_visible_favorites(
+        self, db, favorites_url=None, max_scrolls=None, initial_review_status=None, headless=False
+    ):
         assert favorites_url == "https://www.rednote.com/user/profile/me?tab=likes"
         assert max_scrolls == 2
         assert initial_review_status == ReviewStatus.UNREVIEWED
         return FakeRun()
 
-    async def check_login(self, url=None):
+    async def check_login(self, url=None, headless=False):
         return {
             "active_site_key": "rednote",
             "active_site_display_name": "RedNote",
@@ -329,7 +331,7 @@ def test_xiaohongshu_site_mode(monkeypatch):
 
 
 class LoginNotVerifiedService(CrawlerService):
-    async def check_login(self, url=None):
+    async def check_login(self, url=None, headless=False):
         return {
             "detected_state": "login_required",
             "current_url": "https://www.xiaohongshu.com/login",
@@ -361,7 +363,7 @@ def test_import_guard_stops_when_login_not_verified():
 
 
 class LoginVerifiedService(CrawlerService):
-    async def check_login(self, url=None):
+    async def check_login(self, url=None, headless=False):
         return {
             "detected_state": "logged_in",
             "current_url": self.settings.active_explore_url,
@@ -405,7 +407,7 @@ def test_import_guard_stops_when_no_candidates_found(monkeypatch):
     class FakePage:
         url = "https://www.rednote.com/user/profile/me?tab=fav"
 
-    async def fake_open_page(settings, url):
+    async def fake_open_page(settings, url, headless=False):
         return FakePage()
 
     monkeypatch.setattr("app.crawler.importer.browser_manager.open_page", fake_open_page)

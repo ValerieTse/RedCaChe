@@ -177,7 +177,7 @@ def dedupe_extracted_posts(posts: list[ExtractedFavorite]) -> tuple[list[Extract
             duplicate_count += 1
             existing = by_note_id.get(post.note_id) or by_url.get(post.source_url)
             if existing is not None:
-                _merge_duplicate_post(existing, post)
+                merge_duplicate_post(existing, post)
             continue
         seen_note_ids.add(post.note_id)
         seen_urls.add(post.source_url)
@@ -188,7 +188,7 @@ def dedupe_extracted_posts(posts: list[ExtractedFavorite]) -> tuple[list[Extract
     return deduped, duplicate_count
 
 
-def _merge_duplicate_post(existing: ExtractedFavorite, duplicate: ExtractedFavorite) -> None:
+def merge_duplicate_post(existing: ExtractedFavorite, duplicate: ExtractedFavorite) -> None:
     if _open_url_has_query(duplicate.open_url) and not _open_url_has_query(existing.open_url):
         existing.open_url = duplicate.open_url
         existing.raw_payload["open_url"] = duplicate.open_url

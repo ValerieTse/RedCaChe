@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 from app.models import ImportSource, Post, ReviewStatus, XhsFavoriteStatus
 from app.services.ai_base import AIProvider
 from app.services.ai_mock import MockAIProvider
+from app.services.config_service import classification_defs_for_db
 from app.time import utc_now
 
 
@@ -23,7 +24,7 @@ def import_sample_posts(
     sample_path: Path,
     ai_provider: AIProvider | None = None,
 ) -> tuple[int, int]:
-    provider = ai_provider or MockAIProvider()
+    provider = ai_provider or MockAIProvider(classification_defs_for_db(db))
     payloads = json.loads(sample_path.read_text(encoding="utf-8"))
     imported_count = 0
     updated_count = 0

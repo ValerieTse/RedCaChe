@@ -1,4 +1,4 @@
-import { Archive, CheckSquare, RefreshCw, RotateCcw, Trash2 } from "lucide-react";
+import { Archive, CheckSquare, Loader2, RefreshCw, RotateCcw, Trash2 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import {
   archiveRemoveCheckPosts,
@@ -19,6 +19,7 @@ function RemoveCheck() {
   const [selectedIds, setSelectedIds] = useState(() => new Set());
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(false);
+  const [removing, setRemoving] = useState(false);
   const filteredPosts = useMemo(
     () => (category ? posts.filter((post) => post.category === category) : posts),
     [category, posts],
@@ -102,7 +103,8 @@ function RemoveCheck() {
     if (selectedPostIds.length === 0) return;
     const ok = window.confirm(t("remove.confirmPrompt", { count: selectedPostIds.length }));
     if (!ok) return;
-    setLoading(true);
+    setRemoving(true);
+    setMessage("");
     try {
       const result = await confirmUnfavoritePosts(selectedPostIds);
       setMessage(
@@ -118,7 +120,7 @@ function RemoveCheck() {
     } catch (error) {
       setMessage(error.message);
     } finally {
-      setLoading(false);
+      setRemoving(false);
     }
   }
 
@@ -136,6 +138,15 @@ function RemoveCheck() {
 
   return (
     <section className="page">
+      {removing ? (
+        <div className="blocking-overlay" role="alert" aria-busy="true" aria-live="assertive">
+          <div className="blocking-overlay-card">
+            <Loader2 className="spin" size={34} aria-hidden="true" />
+            <span className="blocking-overlay-title">{t("remove.removing")}</span>
+            <span className="blocking-overlay-hint">{t("remove.removingHint")}</span>
+          </div>
+        </div>
+      ) : null}
       <header className="page-header">
         <div>
           <h1>{t("remove.title")}</h1>

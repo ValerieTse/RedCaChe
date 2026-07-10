@@ -113,6 +113,12 @@ class Settings:
     review_baseline_local: str = field(
         default_factory=lambda: os.getenv("REVIEW_BASELINE_LOCAL", "2026-07-09T22:30:00")
     )
+    daily_fetch_enabled: bool = field(
+        default_factory=lambda: _bool_from_env(os.getenv("DAILY_FETCH_ENABLED"), True)
+    )
+    daily_fetch_local_time: str = field(
+        default_factory=lambda: os.getenv("DAILY_FETCH_LOCAL_TIME", "22:30")
+    )
     active_site_key: str = field(init=False)
     active_site_display_name: str = field(init=False)
     active_base_url: str = field(init=False)

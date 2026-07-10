@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.config import Settings, get_settings
 from app.crawler.importer import CrawlerService
 from app.db import get_db
+from app.dependencies import get_effective_settings
 from app.models import Post, RestoreStatus, ReviewStatus, UnfavoriteStatus
 from app.schemas import BulkPostIdsRequest, ConfirmUnfavoriteRequest, ConfirmUnfavoriteResponse, PostListResponse
 from app.services.backup_service import backup_post_to_json
@@ -15,7 +16,7 @@ from app.time import utc_now
 router = APIRouter(prefix="/remove-check", tags=["remove-check"])
 
 
-def get_crawler_service(settings: Settings = Depends(get_settings)) -> CrawlerService:
+def get_crawler_service(settings: Settings = Depends(get_effective_settings)) -> CrawlerService:
     return CrawlerService(settings)
 
 

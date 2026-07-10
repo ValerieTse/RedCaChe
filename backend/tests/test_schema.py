@@ -50,6 +50,7 @@ def test_post_schema_has_required_columns():
         "tags_json",
         "my_notes",
         "review_status",
+        "from_initial_import",
         "xhs_favorite_status",
         "backup_status",
         "restore_status",

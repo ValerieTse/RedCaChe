@@ -20,9 +20,9 @@ def test_note_id_extraction_from_common_xhs_urls():
     assert extract_note_id_from_url("https://www.rednote.com/explore/red123") == "red123"
     assert (
         extract_note_id_from_url(
-            "https://www.rednote.com/user/profile/5d142f67000000001202d63a/6a1fdd1300000000080037c4?xsec_source=pc_collect"
+            "https://www.rednote.com/user/profile/0123456789abcdef01234567/abcdef0123456789abcdef01?xsec_source=pc_collect"
         )
-        == "6a1fdd1300000000080037c4"
+        == "abcdef0123456789abcdef01"
     )
 
 

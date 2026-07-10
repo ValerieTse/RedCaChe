@@ -13,6 +13,7 @@ from app.crawler.extraction import (
     ExtractedFavorite,
     dedupe_extracted_posts,
     inspect_html_for_candidates,
+    merge_duplicate_post,
     normalize_extracted_post,
 )
 from app.crawler.selectors import (
@@ -41,6 +42,7 @@ from app.models import (
 )
 from app.services.backup_service import backup_post_to_json
 from app.services.ai_mock import MockAIProvider
+from app.services.config_service import classification_defs_for_db
 from app.time import utc_now
 
 
@@ -106,12 +108,91 @@ class CrawlerService:
             detected_state=detected_state,
         )
 
-    async def check_login(self, url: str | None = None) -> dict:
+    async def check_login(self, url: str | None = None, headless: bool = False) -> dict:
         target_url = url or self.settings.active_explore_url
-        page = await browser_manager.open_page(self.settings, target_url)
+        page = await browser_manager.open_page(self.settings, target_url, headless=headless)
         result = await self._inspect_login_state(page)
         browser_manager.remember_login_check(result)
         return result
+
+    async def detect_favorites_url(self) -> dict:
+        """Best-effort detection of the logged-in user's saved/favorites URL.
+
+        Runs headless. Falls back to a manual-paste prompt when the profile link
+        cannot be located.
+        """
+        try:
+            page = await browser_manager.open_page(
+                self.settings, self.settings.active_explore_url, headless=True
+            )
+            await self._wait_for_page_settle(page)
+            detected_state = await self._detect_page_state(page)
+            if detected_state in {"login_required", "captcha_or_challenge"}:
+                return {
+                    "status": "login_required",
+                    "favorites_url": None,
+                    "detected_state": detected_state,
+                    "message": "Not logged in yet. Finish login first.",
+                }
+            profile_url = await self._detect_self_profile_url(page)
+            if not profile_url:
+                return {
+                    "status": "not_found",
+                    "favorites_url": None,
+                    "detected_state": detected_state,
+                    "message": "Could not find your profile link. Paste the saved/favorites URL manually.",
+                }
+            return {
+                "status": "detected",
+                "favorites_url": self._build_favorites_url(profile_url),
+                "detected_state": detected_state,
+                "message": None,
+            }
+        except PlaywrightUnavailableError as exc:
+            return {"status": "failed", "favorites_url": None, "detected_state": None, "message": str(exc)}
+        except Exception as exc:
+            return {"status": "failed", "favorites_url": None, "detected_state": None, "message": str(exc)}
+
+    async def _detect_self_profile_url(self, page) -> str:
+        try:
+            href = await page.evaluate(
+                """
+                () => {
+                  const abs = (h) => { try { return new URL(h, location.href).href.split('?')[0]; } catch { return ''; } };
+                  const anchors = Array.from(document.querySelectorAll('a[href]'));
+                  // 1) The "Me" nav item carries a <use href="#me"> icon.
+                  for (const a of anchors) {
+                    const hasMe = Array.from(a.querySelectorAll('use')).some((u) => {
+                      const h = u.getAttribute('xlink:href') || u.getAttribute('href') || '';
+                      return h === '#me';
+                    });
+                    const href = a.getAttribute('href') || '';
+                    if (hasMe && /\\/user\\/profile\\//.test(href)) return abs(href);
+                  }
+                  // 2) User id from the hydrated app state.
+                  const state = window.__INITIAL_STATE__ || {};
+                  const uid = state.user?.userInfo?.userId
+                    || state.user?.loggedUser?.userId
+                    || state.user?.userPageData?.basicInfo?.redId;
+                  if (uid) return abs(`/user/profile/${uid}`);
+                  // 3) Any profile link with a 24-hex id.
+                  for (const a of anchors) {
+                    const href = a.getAttribute('href') || '';
+                    if (/\\/user\\/profile\\/[0-9a-f]{24}/i.test(href)) return abs(href);
+                  }
+                  return '';
+                }
+                """
+            )
+            return href or ""
+        except Exception:
+            return ""
+
+    def _build_favorites_url(self, profile_url: str) -> str:
+        base = profile_url.split("?")[0].rstrip("/")
+        if self.settings.active_site_key == "rednote":
+            return f"{base}?tab=fav&subTab=note"
+        return f"{base}?tab=fav"
 
     def debug_profile(self) -> dict:
         return {
@@ -384,6 +465,7 @@ class CrawlerService:
         favorites_url: str | None = None,
         max_scrolls: int | None = None,
         initial_review_status: ReviewStatus | None = None,
+        headless: bool = False,
     ) -> ImportRun:
         run = ImportRun(import_run_id=f"import_{uuid.uuid4().hex[:16]}", started_at=utc_now())
         db.add(run)
@@ -402,7 +484,7 @@ class CrawlerService:
                     received_url=domain_error["received_url"],
                 )
 
-            login_check = await self.check_login()
+            login_check = await self.check_login(headless=headless)
             if login_check["detected_state"] != "logged_in":
                 return self._finish_run(
                     db,
@@ -415,6 +497,7 @@ class CrawlerService:
             page = await browser_manager.open_page(
                 self.settings,
                 target_favorites_url,
+                headless=headless,
             )
             stopped_reason = await self._detect_stop_reason(page)
             if stopped_reason:
@@ -495,7 +578,7 @@ class CrawlerService:
         failed_count = 0
         stopped_reason = None
 
-        login_check = await self.check_login()
+        login_check = await self.check_login(headless=True)
         if login_check["detected_state"] != "logged_in":
             return {
                 "requested_count": len(post_ids),
@@ -536,7 +619,7 @@ class CrawlerService:
                     )
                     continue
 
-                page = await browser_manager.open_page(self.settings, target_url)
+                page = await browser_manager.open_page(self.settings, target_url, headless=True)
                 await self._wait_for_page_settle(page)
                 self._remember_better_open_url(db, post, page.url)
                 detected_state = await self._detect_page_state(page)
@@ -976,93 +1059,66 @@ class CrawlerService:
                 await page.wait_for_timeout(1200)
                 return {"status": "unfavorited", "button_text": text[:200]}
         if self.settings.active_site_key == "rednote":
-            fallback_result = await self._try_rednote_collected_count_unfavorite(page)
-            if fallback_result["status"] == "unfavorited":
-                return fallback_result
-            return fallback_result
+            return await self._try_rednote_collect_button_unfavorite(page)
         return {"status": "failed", "reason": "favorite_button_not_found"}
 
-    async def _try_rednote_collected_count_unfavorite(self, page) -> dict:
-        await self._wait_for_rednote_interact_state(page)
-        state = await self._read_rednote_collect_state(page)
+    async def _try_rednote_collect_button_unfavorite(self, page) -> dict:
+        """Toggle off the note-detail collect (favorite) button.
 
-        if state.get("collected") is False:
+        RedNote renders the collect control as `.collect-wrapper` containing an
+        SVG whose `<use>` href is `#collected` when favorited and `#collect`
+        when not. Clicking it toggles the state; we verify the href flips.
+        """
+        await self._wait_for_rednote_interact_state(page)
+        state = await self._read_collect_use_state(page)
+
+        if not state["found"]:
+            return {"status": "failed", "reason": "collect_button_not_found"}
+        if state["href"] == "#collect":
             return {
                 "status": "unfavorited",
                 "button_text": "already_not_collected",
-                "strategy": "rednote_already_not_collected",
+                "strategy": "rednote_collect_button",
             }
-        if state.get("collected") is not True:
-            source = state.get("source") or "unknown"
-            reason = state.get("reason") or "missing_interact_state"
-            return {"status": "failed", "reason": f"rednote_collect_state_unavailable:{source}:{reason}"}
-        if not state.get("collectedCount"):
-            return {"status": "failed", "reason": "rednote_collect_count_unavailable"}
+        if state["href"] != "#collected":
+            return {"status": "failed", "reason": f"collect_state_unknown:{state['href'] or 'empty'}"}
+        if not state["visible"]:
+            return {"status": "failed", "reason": "collect_button_not_visible"}
 
         try:
-            await page.evaluate("window.scrollTo(0, document.body.scrollHeight)")
-            await page.wait_for_timeout(500)
-            click_result = await page.evaluate(
-                """
-                ({ collectedCount }) => {
-                  const isVisible = (node) => {
-                    const rect = node.getBoundingClientRect();
-                    const style = window.getComputedStyle(node);
-                    return rect.width > 0 && rect.height > 0 && style.visibility !== "hidden" && style.display !== "none";
-                  };
-                  const normalize = (value) => String(value || "").replace(/\\s+/g, " ").trim();
-                  const clickableFor = (node) => (
-                    node.closest("button,[role='button'],[class*='interact'],[class*='collect'],[class*='bottom'],[class*='action'],[class*='engage']")
-                    || node
-                  );
-                  const textNodes = [];
-                  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT);
-                  let node = walker.nextNode();
-                  while (node) {
-                    if (normalize(node.textContent) === collectedCount) textNodes.push(node);
-                    node = walker.nextNode();
-                  }
-                  const candidates = textNodes
-                    .map((textNode) => clickableFor(textNode.parentElement))
-                    .filter(Boolean)
-                    .filter((candidate, index, list) => list.indexOf(candidate) === index)
-                    .filter(isVisible);
-                  for (const candidate of candidates) {
-                    const text = normalize(candidate.innerText || candidate.textContent);
-                    if (!text.includes(collectedCount)) continue;
-                    candidate.scrollIntoView({ block: "center", inline: "center" });
-                    candidate.click();
-                    return {
-                      clicked: true,
-                      text: text.slice(0, 200),
-                      className: String(candidate.className || "").slice(0, 200),
-                      rect: candidate.getBoundingClientRect().toJSON?.() || null,
-                    };
-                  }
-                  return { clicked: false, reason: "collected_count_click_target_not_found" };
-                }
-                """,
-                {"collectedCount": state["collectedCount"]},
-            )
+            button = page.locator(".collect-wrapper").first
+            await button.scroll_into_view_if_needed(timeout=3000)
+            await button.click(timeout=4000)
         except Exception as exc:
-            return {"status": "failed", "reason": f"rednote_count_click_failed: {exc}"}
+            return {"status": "failed", "reason": f"collect_click_failed:{exc}"}
 
-        if not click_result.get("clicked"):
-            return {"status": "failed", "reason": click_result.get("reason", "rednote_count_click_failed")}
+        for _ in range(20):
+            await page.wait_for_timeout(150)
+            verified = await self._read_collect_use_state(page)
+            if verified["found"] and verified["href"] == "#collect":
+                return {
+                    "status": "unfavorited",
+                    "button_text": "collect",
+                    "strategy": "rednote_collect_button",
+                }
+        return {"status": "failed", "reason": "collect_state_did_not_toggle"}
 
-        await page.wait_for_timeout(1500)
-        verified_state = await self._read_rednote_collect_state(page, static_fallback=False)
-        if verified_state.get("collected") is True:
-            return {"status": "failed", "reason": "rednote_collect_state_still_true"}
-        if verified_state.get("collected") is None:
-            count_changed = await self._rednote_visible_count_changed(page, state["collectedCount"])
-            if not count_changed:
-                return {"status": "failed", "reason": "rednote_collect_count_did_not_change"}
-        return {
-            "status": "unfavorited",
-            "button_text": click_result.get("text") or state["collectedCount"],
-            "strategy": "rednote_collected_count_click",
-        }
+    async def _read_collect_use_state(self, page) -> dict:
+        try:
+            return await page.evaluate(
+                """
+                () => {
+                  const wrapper = document.querySelector(".collect-wrapper");
+                  if (!wrapper) return { found: false, href: "", visible: false };
+                  const use = wrapper.querySelector("use");
+                  const href = (use && (use.getAttribute("xlink:href") || use.getAttribute("href"))) || "";
+                  const rect = wrapper.getBoundingClientRect();
+                  return { found: true, href, visible: rect.width > 0 && rect.height > 0 };
+                }
+                """
+            )
+        except Exception:
+            return {"found": False, "href": "", "visible": False}
 
     async def _wait_for_rednote_interact_state(self, page) -> None:
         try:
@@ -1091,86 +1147,6 @@ class CrawlerService:
         except Exception:
             pass
 
-    async def _read_rednote_collect_state(self, page, static_fallback: bool = True) -> dict:
-        try:
-            return await page.evaluate(
-                """
-                ({ staticFallback }) => {
-                  const normalize = (value) => String(value || "").trim();
-                  const fromInteract = (interact, noteId, source) => ({
-                    collected: interact?.collected === true ? true : interact?.collected === false ? false : null,
-                    collectedCount: normalize(interact?.collectedCount),
-                    noteId: String(noteId || ""),
-                    source: String(source || ""),
-                  });
-
-                  const root = window.__INITIAL_STATE__ || {};
-                  const currentNoteId = root.note?.currentNoteId || root.note?.firstNoteId || "";
-                  const detailMap = root.note?.noteDetailMap || {};
-                  const detail = detailMap[currentNoteId] || Object.values(detailMap)[0] || {};
-                  const runtimeState = fromInteract(detail.note?.interactInfo || {}, currentNoteId, "runtime");
-                  if (runtimeState.collected !== null && runtimeState.collectedCount) return runtimeState;
-                  if (!staticFallback) return runtimeState;
-
-                  const urlNoteId = location.pathname.match(/[0-9a-f]{24}/i)?.[0] || "";
-                  const sources = [
-                    ["script_text", Array.from(document.scripts).map((script) => script.textContent || "").join("\\n")],
-                    ["html", document.documentElement.innerHTML || ""],
-                  ];
-                  for (const [sourceName, sourceText] of sources) {
-                    const noteIndex = urlNoteId ? sourceText.indexOf(urlNoteId) : -1;
-                    const scanArea = noteIndex >= 0
-                      ? sourceText.slice(Math.max(0, noteIndex - 20000), noteIndex + 180000)
-                      : sourceText;
-                    const interactMatches = Array.from(scanArea.matchAll(/"interactInfo":\\{([^{}]*)\\}/g));
-                    for (const match of interactMatches) {
-                      const raw = match[1] || "";
-                      const collectedMatch = raw.match(/"collected":(true|false)/);
-                      const countMatch = raw.match(/"collectedCount":"([^"]*)"/);
-                      if (!collectedMatch || !countMatch) continue;
-                      return {
-                        collected: collectedMatch[1] === "true",
-                        collectedCount: normalize(countMatch[1]),
-                        noteId: urlNoteId,
-                        source: sourceName,
-                      };
-                    }
-                  }
-                  return { collected: null, collectedCount: "", noteId: urlNoteId, source: "unavailable" };
-                }
-                """,
-                {"staticFallback": static_fallback},
-            )
-        except Exception as exc:
-            return {
-                "collected": None,
-                "collectedCount": "",
-                "noteId": "",
-                "source": "error",
-                "reason": str(exc),
-            }
-
-    async def _rednote_visible_count_changed(self, page, collected_count: str) -> bool:
-        try:
-            return await page.evaluate(
-                """
-                ({ collectedCount }) => {
-                  const normalize = (value) => String(value || "").replace(/\\s+/g, " ").trim();
-                  const bodyText = normalize(document.body?.innerText || "");
-                  const exactPattern = new RegExp(`(^|\\\\s)${collectedCount.replace(/[.*+?^${}()|[\\]\\\\]/g, "\\\\$&")}(\\\\s|$)`);
-                  if (!exactPattern.test(bodyText)) return true;
-                  const numericCount = Number(collectedCount.replace(/,/g, ""));
-                  if (!Number.isFinite(numericCount) || numericCount <= 0) return false;
-                  const decremented = String(numericCount - 1);
-                  const decrementedPattern = new RegExp(`(^|\\\\s)${decremented}(\\\\s|$)`);
-                  return decrementedPattern.test(bodyText);
-                }
-                """,
-                {"collectedCount": collected_count},
-            )
-        except Exception:
-            return False
-
     async def _detect_stop_reason(self, page) -> str | None:
         url = (page.url or "").lower()
         if any(hint in url for hint in LOGIN_OR_CHALLENGE_URL_HINTS):
@@ -1192,8 +1168,8 @@ class CrawlerService:
 
     async def _collect_posts_while_scrolling(self, page, max_scrolls: int) -> list[ExtractedFavorite]:
         collected: list[ExtractedFavorite] = []
-        seen_note_ids: set[str] = set()
-        seen_source_urls: set[str] = set()
+        by_note_id: dict[str, ExtractedFavorite] = {}
+        by_source_url: dict[str, ExtractedFavorite] = {}
         idle_scrolls = 0
         previous_position = None
 
@@ -1201,10 +1177,14 @@ class CrawlerService:
             visible_posts = await self._extract_visible_posts(page)
             added_this_pass = 0
             for post in visible_posts:
-                if post.note_id in seen_note_ids or post.source_url in seen_source_urls:
+                existing = by_note_id.get(post.note_id) or by_source_url.get(post.source_url)
+                if existing is not None:
+                    # The favorites grid renders each note with both a bare href and a
+                    # tokenized href; keep the xsec_token variant instead of dropping it.
+                    merge_duplicate_post(existing, post)
                     continue
-                seen_note_ids.add(post.note_id)
-                seen_source_urls.add(post.source_url)
+                by_note_id[post.note_id] = post
+                by_source_url[post.source_url] = post
                 collected.append(post)
                 added_this_pass += 1
 
@@ -1563,7 +1543,7 @@ class CrawlerService:
         post.enriched_at = now
         post.enrichment_status = EnrichmentStatus.ENRICHED.value
 
-        ai = MockAIProvider().summarize_and_classify(
+        ai = MockAIProvider(classification_defs_for_db(db)).summarize_and_classify(
             {
                 "title": post.title,
                 "raw_text": post.raw_text or post.title,
@@ -1589,13 +1569,7 @@ class CrawlerService:
         merged = dict(existing_payload or {})
         merged_open_url = merged.get("open_url")
         new_open_url = new_payload.get("open_url")
-        if new_open_url and (
-            not merged_open_url
-            or (
-                urlparse(new_open_url).query
-                and not urlparse(str(merged_open_url)).query
-            )
-        ):
+        if new_open_url and (not merged_open_url or urlparse(new_open_url).query):
             merged["open_url"] = new_payload["open_url"]
         if new_payload.get("source_url"):
             merged["source_url"] = new_payload["source_url"]
@@ -1615,11 +1589,16 @@ class CrawlerService:
         posts: list[ExtractedFavorite],
         initial_review_status: ReviewStatus = ReviewStatus.UNREVIEWED,
     ) -> dict[str, int]:
-        ai_provider = MockAIProvider()
+        ai_provider = MockAIProvider(classification_defs_for_db(db))
         imported_count = 0
         database_duplicate_count = 0
         failed_count = 0
         now = utc_now()
+        # A brand-new library bootstraps straight into the Library view; only
+        # posts fetched by later runs go through the Daily Review queue.
+        is_initial_import = (
+            db.query(Post).filter(Post.import_source != ImportSource.MOCK.value).count() == 0
+        )
 
         for index, extracted in enumerate(posts):
             try:
@@ -1636,7 +1615,13 @@ class CrawlerService:
                 )
                 if existing is not None:
                     database_duplicate_count += 1
-                    if extracted.open_url and (not existing.open_url or existing.open_url == existing.source_url):
+                    if extracted.open_url and (
+                        not existing.open_url
+                        or existing.open_url == existing.source_url
+                        or urlparse(extracted.open_url).query
+                    ):
+                        # A tokenized URL from this run is fresher than any stored one:
+                        # xsec_token values expire, so re-imports must refresh them.
                         existing.open_url = extracted.open_url
                     existing.raw_payload_json = self._merge_raw_payload_urls(
                         existing.raw_payload_json,
@@ -1683,6 +1668,7 @@ class CrawlerService:
                     useful_for=ai.useful_for,
                     tags_json=ai.tags,
                     review_status=initial_review_status.value,
+                    from_initial_import=is_initial_import,
                     xhs_favorite_status=XhsFavoriteStatus.FAVORITED.value,
                     enrichment_status=EnrichmentStatus.NOT_ENRICHED.value,
                     created_at=now,
