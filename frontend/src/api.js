@@ -189,4 +189,8 @@ export function detectFavoritesUrl() {
   return request("/crawler/detect-favorites-url", { method: "POST" });
 }
 
+export function backfillTitles() {
+  return request("/crawler/backfill-titles", { method: "POST" });
+}
+
 export { API_BASE };

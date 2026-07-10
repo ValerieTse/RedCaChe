@@ -1,7 +1,8 @@
-import { Bug, ExternalLink, Import, Loader2, Search, ShieldCheck } from "lucide-react";
+import { Bug, ExternalLink, Import, Loader2, Search, ShieldCheck, Type } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
   API_BASE,
+  backfillTitles,
   checkCrawlerLogin,
   debugCrawlerProfile,
   getCrawlerSettings,
@@ -139,6 +140,25 @@ function Settings() {
     }
   }
 
+  async function handleBackfillTitles() {
+    setLoading(true);
+    setMessage("");
+    setReport(null);
+    setInspectionReport(null);
+    try {
+      const result = await backfillTitles();
+      setMessage(
+        result.stopped_reason
+          ? t("settings.backfillStopped", { reason: result.stopped_reason })
+          : t("settings.backfillFinished", { updated: result.updated_count, failed: result.failed_count }),
+      );
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setLoading(false);
+    }
+  }
+
   async function handleInspectPage() {
     setLoading(true);
     setMessage("");
@@ -261,6 +281,15 @@ function Settings() {
         >
           {loading ? <Loader2 className="spin" size={18} aria-hidden="true" /> : <Search size={18} aria-hidden="true" />}
           <span>{t("settings.inspectPage")}</span>
+        </button>
+        <button
+          className="secondary-button"
+          type="button"
+          onClick={handleBackfillTitles}
+          disabled={loading || selectedSiteMode !== activeSiteKey}
+        >
+          {loading ? <Loader2 className="spin" size={18} aria-hidden="true" /> : <Type size={18} aria-hidden="true" />}
+          <span>{t("settings.backfillTitles")}</span>
         </button>
         <button
           className="primary-button"

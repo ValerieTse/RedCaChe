@@ -19,6 +19,7 @@ from app.schemas import (
     CrawlerOpenLoginResponse,
     CrawlerOpenPostRequest,
     CrawlerOpenPostResponse,
+    BackfillTitlesResponse,
     DetectFavoritesUrlResponse,
     ImportVisibleFavoritesRequest,
     ImportVisibleFavoritesResponse,
@@ -100,6 +101,14 @@ async def detect_favorites_url(
     service: CrawlerService = Depends(get_crawler_service),
 ) -> dict:
     return await service.detect_favorites_url()
+
+
+@router.post("/backfill-titles", response_model=BackfillTitlesResponse)
+async def backfill_titles(
+    db: Session = Depends(get_db),
+    service: CrawlerService = Depends(get_crawler_service),
+) -> dict:
+    return await service.backfill_titles(db)
 
 
 @router.post("/import-visible-favorites", response_model=ImportVisibleFavoritesResponse)

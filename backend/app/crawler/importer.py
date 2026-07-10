@@ -194,6 +194,100 @@ class CrawlerService:
             return f"{base}?tab=fav&subTab=note"
         return f"{base}?tab=fav"
 
+    async def backfill_titles(
+        self, db: Session, limit: int = 500, delay_seconds: float = 0.6
+    ) -> dict:
+        """Fill in real titles for posts left as the 'Untitled saved post' fallback.
+
+        Opens each note's detail page headless, reads the title from the page,
+        and re-classifies non-manual posts. Runs in the background.
+        """
+        posts = (
+            db.query(Post)
+            .filter(
+                or_(
+                    Post.title == "Untitled saved post",
+                    Post.title == "",
+                    Post.title.is_(None),
+                )
+            )
+            .order_by(Post.id.desc())
+            .limit(limit)
+            .all()
+        )
+        provider = MockAIProvider(classification_defs_for_db(db))
+        updated = 0
+        failed = 0
+        stopped_reason = None
+
+        for post in posts:
+            target_url = self._best_post_open_url(post)
+            if not target_url or self._domain_validation_error(target_url):
+                failed += 1
+                continue
+            try:
+                page = await browser_manager.open_page(self.settings, target_url, headless=True)
+                await self._wait_for_page_settle(page)
+                detected_state = await self._detect_page_state(page)
+                if detected_state in {"login_required", "captcha_or_challenge"}:
+                    stopped_reason = detected_state
+                    break
+                title = await self._extract_note_title(page)
+                if title:
+                    post.title = title[:512]
+                    if not post.category_is_manual:
+                        post.category = provider.summarize_and_classify({"title": title}).category
+                    post.updated_at = utc_now()
+                    db.add(post)
+                    db.commit()
+                    updated += 1
+                else:
+                    failed += 1
+                if delay_seconds > 0:
+                    await page.wait_for_timeout(int(delay_seconds * 1000))
+            except PlaywrightUnavailableError as exc:
+                stopped_reason = "playwright_unavailable"
+                failed += 1
+                _ = exc
+                break
+            except Exception:
+                failed += 1
+
+        return {
+            "scanned_count": len(posts),
+            "updated_count": updated,
+            "failed_count": failed,
+            "stopped_reason": stopped_reason,
+        }
+
+    async def _extract_note_title(self, page) -> str:
+        try:
+            return await page.evaluate(
+                """
+                () => {
+                  const clean = (value) => String(value || "")
+                    .replace(/\\s+/g, " ")
+                    .replace(/\\s*[-|·]\\s*(rednote|小红书|xiaohongshu)\\s*$/i, "")
+                    .trim();
+                  const h1 = document.querySelector("h1");
+                  const og = document.querySelector("meta[property='og:title']");
+                  const candidates = [
+                    clean(h1 && h1.innerText),
+                    clean(og && og.getAttribute("content")),
+                    clean(document.title),
+                  ];
+                  for (const candidate of candidates) {
+                    if (candidate && candidate.toLowerCase() !== "rednote" && candidate.length >= 2) {
+                      return candidate;
+                    }
+                  }
+                  return "";
+                }
+                """
+            )
+        except Exception:
+            return ""
+
     def debug_profile(self) -> dict:
         return {
             "active_site_key": self.settings.active_site_key,
@@ -499,6 +593,9 @@ class CrawlerService:
                 target_favorites_url,
                 headless=headless,
             )
+            # Let the grid's lazy-loaded card titles render before extracting,
+            # otherwise cards can come back with a thumbnail but an empty title.
+            await self._wait_for_page_settle(page)
             stopped_reason = await self._detect_stop_reason(page)
             if stopped_reason:
                 return self._finish_run(db, run, status="stopped", stopped_reason=stopped_reason)
@@ -1322,11 +1419,13 @@ class CrawlerService:
                 const card = closestCard(link);
                 const image = card.querySelector("img");
                 const text = card.innerText?.trim() || link.innerText?.trim() || "";
+                const imageAlt = image ? (image.getAttribute("alt") || image.getAttribute("title") || "").trim() : "";
                 const title =
                   link.getAttribute("title")
                   || link.getAttribute("aria-label")
                   || firstText(card, titleSelectors)
                   || text.split(/\\n+/).map((line) => line.trim()).find(Boolean)
+                  || imageAlt
                   || "";
                 posts.push({
                   source_url: href,

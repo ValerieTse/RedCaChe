@@ -357,6 +357,13 @@ class ReclassifyResponse(BaseModel):
     updated_count: int
 
 
+class BackfillTitlesResponse(BaseModel):
+    scanned_count: int
+    updated_count: int
+    failed_count: int
+    stopped_reason: Optional[str] = None
+
+
 class EnumSnapshot(BaseModel):
     categories: list[Category]
     import_sources: list[ImportSource]
