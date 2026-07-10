@@ -58,6 +58,22 @@ if [ ! -d "frontend/node_modules" ]; then
   (cd frontend && npm install)
 fi
 
+# --- Pre-flight: fail fast with a clear message if a port is taken ---
+check_port() {
+  local port=$1 name=$2
+  if lsof -i ":$port" -sTCP:LISTEN >/dev/null 2>&1; then
+    echo ""
+    echo "ERROR: Port $port is already in use, so the $name cannot start."
+    echo "RedCache (or another app) may already be running."
+    echo "  - If you started it in another Terminal window, press Ctrl+C there first."
+    echo "  - To see what's using it:  lsof -i :$port -sTCP:LISTEN"
+    echo ""
+    exit 1
+  fi
+}
+check_port 8000 "backend"
+check_port 5173 "frontend"
+
 echo "==> Starting backend on http://127.0.0.1:8000"
 (cd backend && ./.venv/bin/python -m uvicorn app.main:app --host 127.0.0.1 --port 8000) &
 BACKEND_PID=$!
