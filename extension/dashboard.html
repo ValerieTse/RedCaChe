@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<title>RedCache 资料库</title>
+<style>
+  :root { --ink:#1d2329; --muted:#65717b; --line:#dce1dc; --green:#2f7d5a; --red:#aa3e38; --amber:#a8641a; --panel:#fff; --bg:#f6f7f4; --panel-alt:#f0f4f1; }
+  * { box-sizing: border-box; margin: 0; }
+  body { font-family: -apple-system, "PingFang SC", sans-serif; color: var(--ink); background: var(--bg); display: grid; grid-template-columns: 230px 1fr; min-height: 100vh; }
+  aside { background: #fff; border-right: 1px solid var(--line); padding: 22px 16px; }
+  .brand { font-size: 24px; font-weight: 800; padding: 0 8px 6px; }
+  .brand small { display: block; font-size: 12px; font-weight: 400; color: var(--muted); }
+  nav { margin-top: 18px; display: flex; flex-direction: column; gap: 4px; }
+  .nav { text-align: left; border: none; background: none; padding: 11px 12px; border-radius: 10px; font-size: 14px; color: var(--muted); cursor: pointer; }
+  .nav.on { background: var(--panel-alt); color: var(--green); font-weight: 700; }
+  .nav .count { float: right; font-size: 12px; opacity: .8; }
+  main { padding: 26px 30px; }
+  .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px; }
+  h1 { font-size: 24px; }
+  .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+  .toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 18px; }
+  select { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; background: #fff; }
+  button.act { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 8px 14px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  button.act.primary { background: var(--green); color: #fff; border-color: var(--green); }
+  .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+  .card { background: #fff; border: 1px solid var(--line); border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; }
+  .thumb { aspect-ratio: 3/4; background: var(--panel-alt) center/cover; }
+  .body { padding: 12px 14px; display: flex; flex-direction: column; gap: 8px; }
+  .meta { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .cat { font-size: 12px; }
+  .badge { font-size: 11px; background: #fef3c7; color: #92400e; border-radius: 999px; padding: 1px 8px; }
+  .title { font-size: 14px; font-weight: 700; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .author { font-size: 12px; color: var(--muted); }
+  .link { font-size: 12px; color: var(--green); text-decoration: none; font-weight: 600; }
+  .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .actions button { border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 6px; font-size: 12px; cursor: pointer; }
+  .actions button.sel { border-color: var(--green); color: var(--green); background: #eaf4ee; }
+  .empty { color: var(--muted); text-align: center; padding: 60px; }
+  .notice { background: #eef4ef; border-radius: 8px; padding: 10px 14px; font-size: 13px; margin-bottom: 14px; }
+</style>
+</head>
+<body>
+  <aside>
+    <div class="brand">RedCache<small>本地收藏管理</small></div>
+    <nav id="nav"></nav>
+  </aside>
+  <main>
+    <div class="head">
+      <div><h1 id="viewTitle">资料库</h1><div class="sub" id="viewSub"></div></div>
+      <div class="toolbar">
+        <select id="catFilter"><option value="">全部分类</option></select>
+        <button class="act primary" id="importBtn">导入收藏</button>
+      </div>
+    </div>
+    <div class="notice" id="notice" hidden></div>
+    <div class="grid" id="grid"></div>
+    <div class="empty" id="empty" hidden>这里还没有内容。</div>
+  </main>
+  <script type="module" src="dashboard.js"></script>
+</body>
+</html>

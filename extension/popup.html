@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8" />
+<style>
+  :root { --ink:#1d2329; --muted:#65717b; --line:#dce1dc; --green:#2f7d5a; --panel:#fff; --bg:#f6f7f4; }
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 340px; font-family: -apple-system, "PingFang SC", sans-serif; background: var(--bg); color: var(--ink); padding: 16px; }
+  h1 { font-size: 20px; }
+  .tagline { color: var(--muted); font-size: 12px; margin: 2px 0 14px; }
+  .field { display: flex; flex-direction: column; gap: 4px; margin-bottom: 12px; font-size: 13px; }
+  .field span { color: var(--muted); }
+  select, input { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; font-size: 13px; background: #fff; width: 100%; }
+  .row { display: flex; gap: 8px; margin-bottom: 8px; }
+  button { flex: 1; border: 1px solid var(--line); background: #fff; border-radius: 8px; padding: 9px; font-size: 13px; font-weight: 600; cursor: pointer; }
+  button.primary { background: var(--green); color: #fff; border-color: var(--green); }
+  button:disabled { opacity: .55; cursor: default; }
+  .status { font-size: 12px; padding: 4px 0; min-height: 18px; }
+  .ok { color: var(--green); font-weight: 600; }
+  .warn { color: #a8641a; }
+  .msg { font-size: 12px; color: var(--ink); background: #eef4ef; border-radius: 8px; padding: 8px 10px; margin-top: 8px; white-space: pre-line; }
+  hr { border: none; border-top: 1px solid var(--line); margin: 12px 0; }
+</style>
+</head>
+<body>
+  <h1>RedCache</h1>
+  <div class="tagline">本地收藏管理 · 数据只存在你的浏览器</div>
+
+  <label class="field"><span>地区 / Region</span>
+    <select id="siteMode">
+      <option value="rednote">海外 / RedNote</option>
+      <option value="xiaohongshu">中国大陆 / 小红书</option>
+    </select>
+  </label>
+
+  <div class="status" id="loginStatus">登录状态未知</div>
+  <div class="row">
+    <button id="checkLogin">检查登录</button>
+    <button id="detectUrl">检测收藏夹</button>
+  </div>
+
+  <label class="field"><span>收藏夹地址 / Favorites URL</span>
+    <input id="favUrl" type="text" placeholder="检测或手动粘贴" />
+  </label>
+
+  <div class="row">
+    <button id="import" class="primary">导入收藏</button>
+    <button id="backfill">补全标题</button>
+  </div>
+  <div class="row">
+    <button id="openDash">打开资料库</button>
+  </div>
+
+  <div class="msg" id="msg" hidden></div>
+  <script type="module" src="popup.js"></script>
+</body>
+</html>

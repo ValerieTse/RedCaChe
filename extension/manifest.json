@@ -1,0 +1,18 @@
+{
+  "manifest_version": 3,
+  "name": "RedCache — 小红书收藏管理",
+  "version": "0.1.0",
+  "description": "Local-first curator for your saved Xiaohongshu / RedNote posts. All data stays in your browser — no server, no password.",
+  "permissions": ["tabs", "storage", "unlimitedStorage"],
+  "host_permissions": ["*://*.xiaohongshu.com/*", "*://*.rednote.com/*"],
+  "background": { "service_worker": "background.js", "type": "module" },
+  "action": { "default_popup": "popup.html", "default_title": "RedCache" },
+  "content_scripts": [
+    {
+      "matches": ["*://*.xiaohongshu.com/*", "*://*.rednote.com/*"],
+      "js": ["content-script.js"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": { "16": "icons/icon16.png", "48": "icons/icon48.png", "128": "icons/icon128.png" }
+}
