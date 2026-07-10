@@ -56,7 +56,8 @@ RedCache 由两部分组成：**后端**（Python 写的，负责抓取和数据
   ```bash
   python3 --version
   ```
-  看到类似 `Python 3.11.x` 或更高就成功了。
+  看到类似 `Python 3.11.x` 或**更高**就成功了。
+  - ⚠️ **Mac 用户注意**：系统自带的 `python3` 往往是旧的 **3.9**，不满足要求（会报 `requires a different Python`）。请务必从上面链接装 3.11+。装好后新版本通常叫 `python3.12`/`python3.13`，`./scripts/dev.sh` 会自动挑选它，即使 `python3` 还指向旧版也没关系。
 
 ### 2）安装 Node.js（18 或更高版本）
 
@@ -170,6 +171,7 @@ npm run dev
 
 ## 常见问题（Troubleshooting）
 
+- **报错 `requires a different Python: 3.9.x not in '>=3.11'`**：你的默认 `python3` 太旧（macOS 自带的是 3.9）。从 [python.org](https://www.python.org/downloads/) 装个 3.11+（或 `brew install python@3.12`），删掉可能已建坏的环境 `rm -rf backend/.venv`，再重新运行 `./scripts/dev.sh`（它会自动挑选新版本）。
 - **输入命令后提示 `command not found: python3` / `node` / `npm`**：说明对应软件没装好，回到 [第 0 步](#第-0-步先准备好三样东西)重装，Windows 记得勾"Add to PATH"。
 - **`permission denied: ./scripts/dev.sh`**：先运行 `chmod +x scripts/dev.sh`。
 - **端口被占用（address already in use / port 5173 is in use）**：说明已经有一个在跑了，先关掉旧的（对应终端按 `Ctrl + C`）再重启。
@@ -235,7 +237,8 @@ Every command below is typed into a Terminal.
   ```bash
   python3 --version
   ```
-  Seeing `Python 3.11.x` or higher means success.
+  Seeing `Python 3.11.x` or **higher** means success.
+  - ⚠️ **Mac users**: the built-in `python3` is often an old **3.9**, which is too old (you'll see `requires a different Python`). Install 3.11+ from the link above. The newer one is usually named `python3.12`/`python3.13`, and `./scripts/dev.sh` auto-selects it even if plain `python3` still points to the old one.
 
 ### 2) Install Node.js (18 or newer)
 
@@ -348,6 +351,7 @@ When it finishes, click "Enter RedCache" to reach the main app.
 
 ## Troubleshooting
 
+- **Error `requires a different Python: 3.9.x not in '>=3.11'`**: your default `python3` is too old (macOS ships 3.9). Install 3.11+ from [python.org](https://www.python.org/downloads/) (or `brew install python@3.12`), delete the half-created env with `rm -rf backend/.venv`, then run `./scripts/dev.sh` again (it auto-selects the newer version).
 - **`command not found: python3` / `node` / `npm`**: the tool isn't installed correctly — redo [Step 0](#step-0-install-three-things-first); on Windows remember "Add to PATH".
 - **`permission denied: ./scripts/dev.sh`**: run `chmod +x scripts/dev.sh` first.
 - **Port in use (`address already in use` / `port 5173 is in use`)**: something is already running — stop the old one (`Ctrl + C` in its Terminal) and restart.
