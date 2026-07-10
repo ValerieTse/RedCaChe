@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import get_settings
 from app.db import init_db
-from app.routers import crawler, export_obsidian, import_mock, posts, review
+from app.routers import crawler, export_obsidian, import_mock, posts, remove_check, review
 
 
 def create_app() -> FastAPI:
@@ -36,6 +36,7 @@ def create_app() -> FastAPI:
     api.include_router(review.router)
     api.include_router(export_obsidian.router)
     api.include_router(crawler.router)
+    api.include_router(remove_check.router)
     return api
 
 

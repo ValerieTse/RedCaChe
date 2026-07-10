@@ -18,6 +18,7 @@ data/backups/raw_html/*
 data/backups/screenshots/*
 data/backups/images/*
 data/playwright-profile/
+data/debug/
 !data/backups/raw_html/.gitkeep
 !data/backups/screenshots/.gitkeep
 !data/backups/images/.gitkeep

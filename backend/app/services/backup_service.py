@@ -14,11 +14,17 @@ def backup_post_to_json(post: Post, backup_root: Path) -> Path:
     payload = {
         "note_id": post.note_id,
         "source_url": post.source_url,
+        "open_url": post.open_url,
         "title": post.title,
         "author": post.author,
+        "category": post.category,
+        "review_status": post.review_status,
+        "xhs_favorite_status": post.xhs_favorite_status,
+        "unfavorite_status": post.unfavorite_status,
         "raw_text": post.raw_text,
         "ocr_text": post.ocr_text,
         "ai_summary": post.ai_summary,
+        "my_notes": post.my_notes,
         "created_at": utc_now().isoformat(),
     }
     output_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")

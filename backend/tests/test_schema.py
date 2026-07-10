@@ -2,7 +2,15 @@ from sqlalchemy import create_engine, inspect
 from sqlalchemy.pool import StaticPool
 
 from app.db import Base
-from app.models import Category, ImportRun, ImportSource, Post, ReviewStatus
+from app.models import (
+    Category,
+    EnrichmentStatus,
+    ImportRun,
+    ImportSource,
+    Post,
+    ReviewStatus,
+    ReviewWindow,
+)
 
 
 def test_post_schema_has_required_columns():
@@ -18,6 +26,7 @@ def test_post_schema_has_required_columns():
         "id",
         "note_id",
         "source_url",
+        "open_url",
         "import_source",
         "import_run_id",
         "thumbnail_url",
@@ -32,6 +41,7 @@ def test_post_schema_has_required_columns():
         "ocr_text",
         "ai_summary",
         "category",
+        "category_is_manual",
         "sub_category",
         "key_points_json",
         "step_by_step_json",
@@ -46,11 +56,25 @@ def test_post_schema_has_required_columns():
         "unfavorite_status",
         "screenshot_paths_json",
         "operation_logs_json",
+        "enrichment_status",
+        "enriched_at",
         "created_at",
         "updated_at",
     }
 
     assert expected.issubset(columns)
+
+
+def test_review_window_schema_has_required_columns():
+    engine = create_engine(
+        "sqlite:///:memory:",
+        connect_args={"check_same_thread": False},
+        poolclass=StaticPool,
+    )
+    Base.metadata.create_all(bind=engine)
+
+    columns = {column["name"] for column in inspect(engine).get_columns(ReviewWindow.__tablename__)}
+    assert {"id", "started_at", "ended_at", "mode", "created_at"}.issubset(columns)
 
 
 def test_import_run_schema_has_required_columns():
@@ -91,7 +115,7 @@ def test_allowed_categories_and_review_statuses_are_explicit():
         "Life",
         "Food",
         "Travel",
-        "Other",
+        "Uncategorized",
     ]
     assert [status.value for status in ReviewStatus] == [
         "unreviewed",
@@ -99,4 +123,9 @@ def test_allowed_categories_and_review_statuses_are_explicit():
         "remove_from_xhs",
         "evergreen",
         "archived",
+    ]
+    assert [status.value for status in EnrichmentStatus] == [
+        "not_enriched",
+        "enriched",
+        "failed",
     ]

@@ -6,7 +6,7 @@ from pydantic import BaseModel, Field
 
 
 class AISummary(BaseModel):
-    ai_summary: str
+    ai_summary: str | None = None
     category: str
     sub_category: str | None = None
     key_points: list[str] = Field(default_factory=list)

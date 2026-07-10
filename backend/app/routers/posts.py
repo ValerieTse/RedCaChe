@@ -1,11 +1,18 @@
 from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from app.db import get_db
-from app.models import Category, Post, ReviewStatus
-from app.schemas import PostListResponse, PostNotesUpdate, PostRead, PostStatusUpdate
+from app.models import BackupStatus, Category, Post, ReviewStatus, UnfavoriteStatus
+from app.schemas import (
+    PostCategoryUpdate,
+    PostListResponse,
+    PostNotesUpdate,
+    PostRead,
+    PostStatusUpdate,
+)
 from app.time import utc_now
 
 
@@ -23,7 +30,43 @@ def list_posts(
         query = query.filter(Post.category == category.value)
     if status:
         query = query.filter(Post.review_status == status.value)
-    posts = query.order_by(Post.imported_at.desc()).all()
+    posts = query.order_by(Post.imported_at.desc(), Post.id.desc()).all()
+    return PostListResponse(total=len(posts), posts=posts)
+
+
+@router.get("/backups/search", response_model=PostListResponse)
+def search_backed_up_posts(
+    q: str | None = Query(default=None),
+    db: Session = Depends(get_db),
+) -> PostListResponse:
+    query = db.query(Post).filter(
+        or_(
+            Post.backup_status.isnot(None),
+            Post.review_status == ReviewStatus.ARCHIVED.value,
+            Post.unfavorite_status.in_(
+                [
+                    UnfavoriteStatus.QUEUED.value,
+                    UnfavoriteStatus.PROCESSING.value,
+                    UnfavoriteStatus.UNFAVORITED.value,
+                    UnfavoriteStatus.FAILED.value,
+                    UnfavoriteStatus.SKIPPED.value,
+                ]
+            ),
+        )
+    )
+    if q:
+        pattern = f"%{q.strip()}%"
+        query = query.filter(
+            or_(
+                Post.title.ilike(pattern),
+                Post.author.ilike(pattern),
+                Post.note_id.ilike(pattern),
+                Post.source_url.ilike(pattern),
+                Post.open_url.ilike(pattern),
+                Post.my_notes.ilike(pattern),
+            )
+        )
+    posts = query.order_by(Post.updated_at.desc(), Post.id.desc()).all()
     return PostListResponse(total=len(posts), posts=posts)
 
 
@@ -62,6 +105,25 @@ def update_post_notes(
     if post is None:
         raise HTTPException(status_code=404, detail="Post not found")
     post.my_notes = payload.my_notes
+    post.updated_at = utc_now()
+    db.add(post)
+    db.commit()
+    db.refresh(post)
+    return post
+
+
+@router.patch("/{post_id}/category", response_model=PostRead)
+def update_post_category(
+    post_id: int,
+    payload: PostCategoryUpdate,
+    db: Session = Depends(get_db),
+) -> Post:
+    post = db.get(Post, post_id)
+    if post is None:
+        raise HTTPException(status_code=404, detail="Post not found")
+    post.category = payload.category.value
+    post.sub_category = None
+    post.category_is_manual = True
     post.updated_at = utc_now()
     db.add(post)
     db.commit()

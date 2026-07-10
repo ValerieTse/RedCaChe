@@ -22,6 +22,7 @@ class PostRead(BaseModel):
     id: int
     note_id: str
     source_url: str
+    open_url: Optional[str] = None
     import_source: str = ImportSource.MOCK.value
     import_run_id: Optional[str] = None
     thumbnail_url: Optional[str] = None
@@ -36,6 +37,7 @@ class PostRead(BaseModel):
     ocr_text: Optional[str] = None
     ai_summary: Optional[str] = None
     category: str
+    category_is_manual: bool = False
     sub_category: Optional[str] = None
     key_points_json: list[str] = Field(default_factory=list)
     step_by_step_json: list[str] = Field(default_factory=list)
@@ -50,6 +52,8 @@ class PostRead(BaseModel):
     unfavorite_status: str
     screenshot_paths_json: list[str] = Field(default_factory=list)
     operation_logs_json: list[dict] = Field(default_factory=list)
+    enrichment_status: str = "not_enriched"
+    enriched_at: Optional[datetime] = None
     created_at: datetime
     updated_at: datetime
 
@@ -65,6 +69,31 @@ class PostStatusUpdate(BaseModel):
 
 class PostNotesUpdate(BaseModel):
     my_notes: Optional[str] = None
+
+
+class PostCategoryUpdate(BaseModel):
+    category: Category
+
+
+class BulkPostIdsRequest(BaseModel):
+    post_ids: list[int] = Field(default_factory=list)
+
+
+class ConfirmUnfavoriteRequest(BaseModel):
+    post_ids: list[int] = Field(default_factory=list)
+    confirm: bool = False
+
+
+class ConfirmUnfavoriteResponse(BaseModel):
+    requested_count: int
+    backed_up_count: int
+    unfavorited_count: int
+    restored_count: int = 0
+    archived_count: int = 0
+    failed_count: int
+    stopped_reason: Optional[str] = None
+    backup_paths: list[str] = Field(default_factory=list)
+    per_post_results: list[dict] = Field(default_factory=list)
 
 
 class ImportMockResponse(BaseModel):
@@ -86,6 +115,29 @@ class CrawlerOpenLoginResponse(BaseModel):
     active_site_display_name: str
     active_base_url: str
     using_system_chrome: bool = False
+    launch_fallback_reason: Optional[str] = None
+
+
+class CrawlerOpenPostRequest(BaseModel):
+    post_id: Optional[int] = None
+    url: Optional[str] = None
+
+
+class CrawlerOpenPostResponse(BaseModel):
+    status: str
+    message: str
+    post_id: Optional[int] = None
+    requested_url: Optional[str] = None
+    current_url: Optional[str] = None
+    detected_state: Optional[str] = None
+    profile_dir: str
+    active_site_key: str
+    active_site_display_name: str
+    active_base_url: str
+    using_system_chrome: bool = False
+    stopped_reason: Optional[str] = None
+    expected_domain: Optional[str] = None
+    received_url: Optional[str] = None
     launch_fallback_reason: Optional[str] = None
 
 
@@ -124,9 +176,76 @@ class CrawlerDebugProfileResponse(BaseModel):
     last_login_check_result: Optional[dict] = None
 
 
+class CrawlerInspectPageRequest(BaseModel):
+    url: str
+    max_scrolls: int = Field(default=2, ge=0, le=100)
+    save_debug_screenshot: bool = True
+    save_debug_html: bool = True
+
+
+class CrawlerInspectPageResponse(BaseModel):
+    active_site_key: str
+    active_base_url: str
+    profile_dir: str
+    current_url: str
+    page_title: str
+    detected_state: str
+    visible_text_sample: str
+    body_text_length: int
+    total_links_count: int
+    all_link_href_samples: list[str] = Field(default_factory=list)
+    candidate_note_links: list[str] = Field(default_factory=list)
+    candidate_note_links_count: int
+    candidate_card_count: int
+    selector_strategy_results: dict
+    debug_screenshot_paths: list[str] = Field(default_factory=list)
+    debug_html_path: Optional[str] = None
+    debug_text_path: Optional[str] = None
+
+
+class CrawlerEnrichPostsRequest(BaseModel):
+    post_ids: Optional[list[int]] = None
+    import_run_id: Optional[str] = None
+    status_filter: Optional[str] = None
+    limit: int = Field(default=10, ge=1, le=100)
+    delay_seconds: float = Field(default=1.5, ge=0, le=30)
+
+
+class CrawlerEnrichPostsResponse(BaseModel):
+    processed_count: int
+    enriched_count: int
+    skipped_count: int
+    failed_count: int
+    stopped_reason: Optional[str] = None
+    per_post_results: list[dict] = Field(default_factory=list)
+
+
+class CrawlerInspectPostDetailRequest(BaseModel):
+    post_id: Optional[int] = None
+    url: Optional[str] = None
+
+
+class CrawlerInspectPostDetailResponse(BaseModel):
+    active_site_key: str
+    active_base_url: str
+    profile_dir: str
+    current_url: str
+    detected_state: str
+    page_title: str
+    visible_text_sample: str
+    extracted_title: str
+    extracted_author: Optional[str] = None
+    extracted_body_text: str
+    extracted_hashtags: list[str] = Field(default_factory=list)
+    extraction_strategy_results: dict = Field(default_factory=dict)
+    debug_screenshot_path: Optional[str] = None
+    debug_html_path: Optional[str] = None
+
+
 class ImportVisibleFavoritesRequest(BaseModel):
     favorites_url: Optional[str] = None
-    max_scrolls: Optional[int] = Field(default=None, ge=1, le=100)
+    max_scrolls: Optional[int] = Field(default=None, ge=1, le=500)
+    initial_review_status: ReviewStatus = ReviewStatus.UNREVIEWED
 
 
 class ImportVisibleFavoritesResponse(BaseModel):
@@ -160,12 +279,21 @@ class ImportRunRead(BaseModel):
 
 class DailyReviewResponse(BaseModel):
     review_date: date
+    window_start: datetime
+    window_end: datetime
+    window_mode: str
+    timezone: str
+    cutoff_local: str
     count: int
     posts: list[PostRead]
 
 
 class EvergreenExportRequest(BaseModel):
     post_ids: Optional[list[int]] = None
+
+
+class DailyReviewExportRequest(BaseModel):
+    post_ids: list[int] = Field(default_factory=list)
 
 
 class ExportResponse(BaseModel):

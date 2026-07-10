@@ -14,6 +14,20 @@ CARD_SELECTORS = [
     "a[href*='/search_result/']",
 ]
 
+XIAOHONGSHU_CARD_SELECTORS = CARD_SELECTORS
+
+REDNOTE_CARD_SELECTORS = [
+    "section.note-item",
+    "div.note-item",
+    "div[class*='note']",
+    "section[class*='note']",
+    "div[class*='card']",
+    "a[href*='/explore/']",
+    "a[href*='/discovery/item/']",
+    "a[href*='/note/']",
+    "a[href*='/item/']",
+]
+
 AUTHOR_SELECTORS = [
     ".author",
     ".name",
@@ -34,6 +48,28 @@ LINK_PATH_HINTS = [
     "/search_result/",
     "/item/",
 ]
+
+XIAOHONGSHU_LINK_PATH_HINTS = LINK_PATH_HINTS
+
+REDNOTE_LINK_PATH_HINTS = [
+    "/explore/",
+    "/discovery/item/",
+    "/search_result/",
+    "/note/",
+    "/notes/",
+    "/item/",
+    "/post/",
+]
+
+SITE_CARD_SELECTORS = {
+    "rednote": REDNOTE_CARD_SELECTORS,
+    "xiaohongshu": XIAOHONGSHU_CARD_SELECTORS,
+}
+
+SITE_LINK_PATH_HINTS = {
+    "rednote": REDNOTE_LINK_PATH_HINTS,
+    "xiaohongshu": XIAOHONGSHU_LINK_PATH_HINTS,
+}
 
 LOGIN_OR_CHALLENGE_URL_HINTS = [
     "login",

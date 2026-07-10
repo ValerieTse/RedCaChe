@@ -1,13 +1,8 @@
-const statusLabels = {
-  unreviewed: "Unreviewed",
-  keep: "Keep",
-  remove_from_xhs: "Remove",
-  evergreen: "Evergreen",
-  archived: "Archived",
-};
+import { useI18n } from "../i18n.jsx";
 
 function StatusBadge({ status }) {
-  return <span className={`status-badge status-${status}`}>{statusLabels[status] || status}</span>;
+  const { t } = useI18n();
+  return <span className={`status-badge status-${status}`}>{t(`status.${status}`)}</span>;
 }
 
 export default StatusBadge;

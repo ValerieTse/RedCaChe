@@ -73,8 +73,9 @@ def import_sample_posts(
             post.raw_text = payload.get("raw_text")
             post.ocr_text = payload.get("ocr_text")
             post.ai_summary = ai.ai_summary
-            post.category = ai.category
-            post.sub_category = ai.sub_category
+            if not post.category_is_manual:
+                post.category = ai.category
+                post.sub_category = ai.sub_category
             post.key_points_json = ai.key_points
             post.step_by_step_json = ai.step_by_step
             post.products_or_items_json = ai.products_or_items

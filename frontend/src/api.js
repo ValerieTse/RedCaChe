@@ -25,6 +25,13 @@ export function listPosts(filters = {}) {
   return request(`/posts${suffix}`);
 }
 
+export function searchBackupPosts(query = "") {
+  const params = new URLSearchParams();
+  if (query.trim()) params.set("q", query.trim());
+  const suffix = params.toString() ? `?${params.toString()}` : "";
+  return request(`/posts/backups/search${suffix}`);
+}
+
 export function updatePostStatus(id, reviewStatus) {
   return request(`/posts/${id}/status`, {
     method: "PATCH",
@@ -39,6 +46,13 @@ export function updatePostNotes(id, myNotes) {
   });
 }
 
+export function updatePostCategory(id, category) {
+  return request(`/posts/${id}/category`, {
+    method: "PATCH",
+    body: JSON.stringify({ category }),
+  });
+}
+
 export function importMockPosts() {
   return request("/import/mock", { method: "POST" });
 }
@@ -47,8 +61,40 @@ export function getDailyReview() {
   return request("/review/daily");
 }
 
-export function exportDailyReview() {
-  return request("/export/obsidian/daily", { method: "POST" });
+export function updateDailyReview() {
+  return request("/review/daily/update", { method: "POST" });
+}
+
+export function exportDailyReview(postIds = []) {
+  return request("/export/obsidian/daily", {
+    method: "POST",
+    body: JSON.stringify({ post_ids: postIds }),
+  });
+}
+
+export function listRemoveCheckPosts() {
+  return request("/remove-check/posts");
+}
+
+export function restoreRemoveCheckPosts(postIds) {
+  return request("/remove-check/restore", {
+    method: "POST",
+    body: JSON.stringify({ post_ids: postIds }),
+  });
+}
+
+export function archiveRemoveCheckPosts(postIds) {
+  return request("/remove-check/archive", {
+    method: "POST",
+    body: JSON.stringify({ post_ids: postIds }),
+  });
+}
+
+export function confirmUnfavoritePosts(postIds) {
+  return request("/remove-check/confirm-unfavorite", {
+    method: "POST",
+    body: JSON.stringify({ post_ids: postIds, confirm: true }),
+  });
 }
 
 export function exportEvergreen(postIds = null) {
@@ -69,6 +115,13 @@ export function openCrawlerLogin(loginUrl = null) {
   });
 }
 
+export function openPostSource(postId) {
+  return request("/crawler/open-post", {
+    method: "POST",
+    body: JSON.stringify({ post_id: postId }),
+  });
+}
+
 export function checkCrawlerLogin(url = null) {
   return request("/crawler/check-login", {
     method: "POST",
@@ -80,12 +133,30 @@ export function debugCrawlerProfile() {
   return request("/crawler/debug-profile", { method: "POST" });
 }
 
-export function importVisibleFavorites({ favoritesUrl, maxScrolls } = {}) {
+export function inspectCrawlerPage({
+  url,
+  maxScrolls = 2,
+  saveDebugScreenshot = true,
+  saveDebugHtml = true,
+} = {}) {
+  return request("/crawler/inspect-page", {
+    method: "POST",
+    body: JSON.stringify({
+      url,
+      max_scrolls: maxScrolls,
+      save_debug_screenshot: saveDebugScreenshot,
+      save_debug_html: saveDebugHtml,
+    }),
+  });
+}
+
+export function importVisibleFavorites({ favoritesUrl, maxScrolls, initialReviewStatus } = {}) {
   return request("/crawler/import-visible-favorites", {
     method: "POST",
     body: JSON.stringify({
       favorites_url: favoritesUrl || null,
       max_scrolls: maxScrolls || null,
+      initial_review_status: initialReviewStatus || undefined,
     }),
   });
 }

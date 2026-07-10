@@ -107,6 +107,12 @@ class Settings:
     export_daily_review_enabled: bool = field(
         default_factory=lambda: _bool_from_env(os.getenv("EXPORT_DAILY_REVIEW_ENABLED"), True)
     )
+    review_timezone: str = field(
+        default_factory=lambda: os.getenv("REVIEW_TIMEZONE", "America/Los_Angeles")
+    )
+    review_baseline_local: str = field(
+        default_factory=lambda: os.getenv("REVIEW_BASELINE_LOCAL", "2026-07-09T22:30:00")
+    )
     active_site_key: str = field(init=False)
     active_site_display_name: str = field(init=False)
     active_base_url: str = field(init=False)

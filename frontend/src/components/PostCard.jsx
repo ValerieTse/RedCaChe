@@ -1,98 +1,200 @@
-import { Archive, Check, Circle, ExternalLink, Leaf, Save, Trash2 } from "lucide-react";
+import { Archive, Check, ExternalLink, Leaf, Pencil, RotateCcw, Save, Trash2 } from "lucide-react";
 import { useState } from "react";
-import StatusBadge from "./StatusBadge.jsx";
+import { openPostSource } from "../api.js";
+import { POST_CATEGORIES } from "../categories.js";
+import { useI18n } from "../i18n.jsx";
+import { resolvePostOpenUrl } from "./postLinks.js";
 
 const statusActions = [
-  { value: "unreviewed", label: "Unreviewed", icon: Circle },
-  { value: "keep", label: "Keep", icon: Check },
-  { value: "remove_from_xhs", label: "Remove", icon: Trash2 },
-  { value: "evergreen", label: "Evergreen", icon: Leaf },
-  { value: "archived", label: "Archive", icon: Archive },
+  { value: "keep", icon: Check },
+  { value: "remove_from_xhs", icon: Trash2 },
+  { value: "evergreen", icon: Leaf },
+  { value: "archived", icon: Archive },
 ];
 
-function PostCard({ post, onStatusChange, onNotesSave }) {
+const removeCheckActions = [
+  { value: "restore", icon: RotateCcw, labelKey: "remove.restore" },
+  { value: "archived", icon: Archive, labelKey: "status.archived" },
+];
+
+const archivedActions = [
+  { value: "restore", icon: RotateCcw, labelKey: "remove.restore" },
+  { value: "remove_from_xhs", icon: Trash2, labelKey: "status.remove_from_xhs" },
+];
+
+function PostCard({
+  post,
+  onStatusChange,
+  onNotesSave,
+  onCategoryChange,
+  mode = "review",
+  selected = false,
+  onSelectChange,
+  onArchive,
+  onRestore,
+}) {
+  const { t } = useI18n();
   const [notes, setNotes] = useState(post.my_notes || "");
-  const keyPoints = post.key_points_json || [];
-  const tags = post.tags_json || [];
-  const sourceLabels = {
-    mock: "Mock",
-    xiaohongshu: "Xiaohongshu",
-    rednote: "RedNote",
-  };
-  const sourceLabel = sourceLabels[post.import_source] || post.import_source || "Mock";
+  const [sourceState, setSourceState] = useState({ loading: false, message: "" });
+  const openUrl = resolvePostOpenUrl(post);
+  const category = post.category && post.category !== "Other" ? post.category : "Uncategorized";
+  const isRemoveCheck = mode === "remove-check";
+  const isArchived = mode === "archived";
+  const isQueuePage = isRemoveCheck || isArchived;
+
+  const cardClassName = [
+    "post-card",
+    isQueuePage ? "queue-card" : "",
+    isQueuePage && selected ? "selected-for-removal" : "",
+  ].filter(Boolean).join(" ");
+
+  async function handleOpenSource() {
+    if (!openUrl || sourceState.loading) return;
+    setSourceState({ loading: true, message: "" });
+    try {
+      const result = await openPostSource(post.id);
+      const stateMessage =
+        result.detected_state && result.detected_state !== "logged_in"
+          ? ` (${result.detected_state})`
+          : "";
+      setSourceState({ loading: false, message: `${t("post.openedInBrowser")}${stateMessage}` });
+    } catch (error) {
+      setSourceState({ loading: false, message: error.message });
+    }
+  }
 
   return (
-    <article className="post-card">
-      <header className="post-header">
-        <div>
-          <div className="post-meta">
-            <span className={`source-pill source-${post.import_source || "mock"}`}>{sourceLabel}</span>
-            <span>{post.category}</span>
-            {post.sub_category ? <span>{post.sub_category}</span> : null}
-          </div>
-          <h2>{post.title}</h2>
-        </div>
-        <StatusBadge status={post.review_status} />
-      </header>
-
+    <article className={cardClassName}>
+      {isRemoveCheck ? (
+        <label className="card-select">
+          <input
+            type="checkbox"
+            checked={selected}
+            onChange={(event) => onSelectChange?.(post.id, event.target.checked)}
+          />
+          <span>{t("remove.selectPost")}</span>
+        </label>
+      ) : null}
       {post.thumbnail_url ? (
-        <img className="post-thumbnail" src={post.thumbnail_url} alt="" loading="lazy" referrerPolicy="no-referrer" />
-      ) : null}
-
-      {post.ai_summary ? <p className="summary">{post.ai_summary}</p> : null}
-
-      {keyPoints.length > 0 ? (
-        <ul className="key-points">
-          {keyPoints.map((point) => (
-            <li key={point}>{point}</li>
-          ))}
-        </ul>
-      ) : null}
-
-      {tags.length > 0 ? (
-        <div className="tag-row">
-          {tags.map((tag) => (
-            <span className="tag" key={tag}>
-              {tag}
-            </span>
-          ))}
-        </div>
-      ) : null}
-
-      <div className="post-link-row">
-        <a href={post.source_url} target="_blank" rel="noreferrer">
-          <ExternalLink size={16} aria-hidden="true" />
-          Source
-        </a>
-      </div>
-
-      <div className="status-actions" aria-label={`Manual status for ${post.title}`}>
-        {statusActions.map((action) => {
-          const Icon = action.icon;
-          return (
-            <button
-              key={action.value}
-              type="button"
-              className={post.review_status === action.value ? "status-action selected" : "status-action"}
-              onClick={() => onStatusChange(post.id, action.value)}
-            >
-              <Icon size={16} aria-hidden="true" />
-              <span>{action.label}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      <div className="notes-row">
-        <textarea
-          value={notes}
-          onChange={(event) => setNotes(event.target.value)}
-          placeholder="My notes"
-          rows={3}
+        <img
+          className="post-thumbnail"
+          src={post.thumbnail_url}
+          alt={post.title}
+          loading="lazy"
+          referrerPolicy="no-referrer"
         />
-        <button className="icon-button" type="button" onClick={() => onNotesSave(post.id, notes)} title="Save notes">
-          <Save size={18} aria-hidden="true" />
-        </button>
+      ) : null}
+
+      <div className="post-card-body">
+        <header className="post-header">
+          <div>
+            <div className="post-meta">
+              <label className="category-control">
+                <Pencil size={14} aria-hidden="true" />
+                <span className="sr-only">{t("post.editCategory")}</span>
+                <select
+                  value={category}
+                  onChange={(event) => onCategoryChange(post.id, event.target.value)}
+                  aria-label={t("post.editCategoryFor", { title: post.title })}
+                >
+                  {POST_CATEGORIES.map((item) => (
+                    <option value={item} key={item}>
+                      {t(`category.${item}`)}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {post.category_is_manual ? <span className="manual-category">{t("post.manualCategory")}</span> : null}
+            </div>
+            <h2>{post.title}</h2>
+            {post.author ? <p className="post-author">{t("post.byAuthor", { author: post.author })}</p> : null}
+          </div>
+        </header>
+
+        <div className="post-link-row">
+          {openUrl ? (
+            <button type="button" className="link-button" onClick={handleOpenSource} disabled={sourceState.loading}>
+              <ExternalLink size={16} aria-hidden="true" />
+              {sourceState.loading ? t("common.loading") : t("post.openSource")}
+            </button>
+          ) : (
+            <span>{t("post.sourceUnavailable")}</span>
+          )}
+          {sourceState.message ? <span className="source-message">{sourceState.message}</span> : null}
+        </div>
+
+        {isRemoveCheck ? (
+          <div className="status-actions remove-actions" aria-label={t("remove.actionsFor", { title: post.title })}>
+            {removeCheckActions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <button
+                  key={action.value}
+                  type="button"
+                  className="status-action"
+                  onClick={() => (action.value === "archived" ? onArchive?.(post.id) : onRestore?.(post.id))}
+                  title={t(action.labelKey)}
+                >
+                  <Icon size={16} aria-hidden="true" />
+                  <span>{t(action.labelKey)}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : isArchived ? (
+          <div className="status-actions remove-actions" aria-label={t("archived.actionsFor", { title: post.title })}>
+            {archivedActions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <button
+                  key={action.value}
+                  type="button"
+                  className="status-action"
+                  onClick={() => (action.value === "restore" ? onRestore?.(post.id) : onStatusChange?.(post.id, action.value))}
+                  title={t(action.labelKey)}
+                >
+                  <Icon size={16} aria-hidden="true" />
+                  <span>{t(action.labelKey)}</span>
+                </button>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="status-actions" aria-label={t("post.manualStatus", { title: post.title })}>
+            {statusActions.map((action) => {
+              const Icon = action.icon;
+              return (
+                <button
+                  key={action.value}
+                  type="button"
+                  className={post.review_status === action.value ? "status-action selected" : "status-action"}
+                  onClick={() => onStatusChange(post.id, action.value)}
+                  title={t(`status.${action.value}`)}
+                >
+                  <Icon size={16} aria-hidden="true" />
+                  <span>{t(`status.${action.value}`)}</span>
+                </button>
+              );
+            })}
+          </div>
+        )}
+
+        <div className="notes-row">
+          <textarea
+            value={notes}
+            onChange={(event) => setNotes(event.target.value)}
+            placeholder={t("post.notes")}
+            rows={2}
+          />
+          <button
+            className="icon-button"
+            type="button"
+            onClick={() => onNotesSave(post.id, notes)}
+            title={t("post.saveNotes")}
+          >
+            <Save size={18} aria-hidden="true" />
+          </button>
+        </div>
       </div>
     </article>
   );

@@ -31,15 +31,29 @@ def _post_to_markdown(post: Post, include_notes: bool = True) -> str:
     return "\n".join(lines).strip() + "\n"
 
 
-def export_daily_review(db: Session, output_root: Path) -> tuple[Path, int, int]:
+def export_daily_review(
+    db: Session,
+    output_root: Path,
+    post_ids: list[int] | None = None,
+) -> tuple[Path, int, int]:
     output_root.mkdir(parents=True, exist_ok=True)
-    posts = (
-        db.query(Post)
-        .filter(Post.review_status.in_([ReviewStatus.UNREVIEWED.value, ReviewStatus.KEEP.value]))
-        .order_by(Post.imported_at.desc())
-        .limit(25)
-        .all()
-    )
+    if post_ids is not None:
+        posts = (
+            db.query(Post)
+            .filter(Post.id.in_(post_ids))
+            .order_by(Post.imported_at.desc(), Post.id.desc())
+            .all()
+            if post_ids
+            else []
+        )
+    else:
+        posts = (
+            db.query(Post)
+            .filter(Post.review_status.in_([ReviewStatus.UNREVIEWED.value, ReviewStatus.KEEP.value]))
+            .order_by(Post.imported_at.desc(), Post.id.desc())
+            .limit(25)
+            .all()
+        )
     today = date.today().isoformat()
     output_path = output_root / f"xhs-daily-review-{today}.md"
     body = [_frontmatter(f"XHS Daily Review {today}", ["xhs", "daily-review"])]
@@ -47,7 +61,8 @@ def export_daily_review(db: Session, output_root: Path) -> tuple[Path, int, int]
     for post in posts:
         body.append(_post_to_markdown(post, include_notes=True))
     output_path.write_text("\n".join(body), encoding="utf-8")
-    return output_path, len(posts), 0
+    skipped_count = 0 if post_ids is None else len(set(post_ids)) - len(posts)
+    return output_path, len(posts), max(skipped_count, 0)
 
 
 def export_evergreen(

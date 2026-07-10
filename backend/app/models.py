@@ -4,7 +4,7 @@ from datetime import date, datetime
 from enum import Enum
 from typing import Optional
 
-from sqlalchemy import Date, DateTime, Integer, JSON, String, Text
+from sqlalchemy import Boolean, Date, DateTime, Integer, JSON, String, Text
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db import Base
@@ -20,7 +20,7 @@ class Category(str, Enum):
     LIFE = "Life"
     FOOD = "Food"
     TRAVEL = "Travel"
-    OTHER = "Other"
+    UNCATEGORIZED = "Uncategorized"
 
 
 class ReviewStatus(str, Enum):
@@ -67,12 +67,19 @@ class ImportSource(str, Enum):
     REDNOTE = "rednote"
 
 
+class EnrichmentStatus(str, Enum):
+    NOT_ENRICHED = "not_enriched"
+    ENRICHED = "enriched"
+    FAILED = "failed"
+
+
 class Post(Base):
     __tablename__ = "posts"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     note_id: Mapped[str] = mapped_column(String(128), unique=True, index=True, nullable=False)
     source_url: Mapped[str] = mapped_column(String(1024), nullable=False)
+    open_url: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)
     import_source: Mapped[str] = mapped_column(
         String(32), default=ImportSource.MOCK.value, nullable=False, index=True
     )
@@ -88,7 +95,10 @@ class Post(Base):
     raw_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     ocr_text: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     ai_summary: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    category: Mapped[str] = mapped_column(String(64), default=Category.OTHER.value, nullable=False)
+    category: Mapped[str] = mapped_column(
+        String(64), default=Category.UNCATEGORIZED.value, nullable=False
+    )
+    category_is_manual: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     sub_category: Mapped[Optional[str]] = mapped_column(String(128), nullable=True)
     key_points_json: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
     step_by_step_json: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
@@ -111,6 +121,10 @@ class Post(Base):
     )
     screenshot_paths_json: Mapped[list[str]] = mapped_column(JSON, default=list, nullable=False)
     operation_logs_json: Mapped[list[dict]] = mapped_column(JSON, default=list, nullable=False)
+    enrichment_status: Mapped[str] = mapped_column(
+        String(32), default=EnrichmentStatus.NOT_ENRICHED.value, nullable=False, index=True
+    )
+    enriched_at: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime, default=utc_now, onupdate=utc_now, nullable=False
@@ -132,3 +146,13 @@ class ImportRun(Base):
     error_message: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     expected_domain: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
     received_url: Mapped[Optional[str]] = mapped_column(String(2048), nullable=True)
+
+
+class ReviewWindow(Base):
+    __tablename__ = "review_windows"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    started_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    ended_at: Mapped[datetime] = mapped_column(DateTime, nullable=False)
+    mode: Mapped[str] = mapped_column(String(32), default="manual_update", nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=utc_now, nullable=False)

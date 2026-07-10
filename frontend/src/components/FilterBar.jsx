@@ -1,39 +1,27 @@
-import { Filter, RotateCcw, Search } from "lucide-react";
+import { RotateCcw } from "lucide-react";
+import { POST_CATEGORIES } from "../categories.js";
+import { useI18n } from "../i18n.jsx";
 
-const categories = ["", "Beauty", "Fashion", "Fitness", "Work", "Study", "Life", "Food", "Travel", "Other"];
-const statuses = ["", "unreviewed", "keep", "remove_from_xhs", "evergreen", "archived"];
+const categories = ["", ...POST_CATEGORIES];
 
-function FilterBar({ category, status, onCategoryChange, onStatusChange, onReset }) {
+function FilterBar({ category, onCategoryChange, onReset }) {
+  const { t } = useI18n();
+
   return (
     <div className="filter-bar">
-      <div className="filter-title">
-        <Filter size={18} aria-hidden="true" />
-        <span>Filters</span>
-      </div>
       <label className="field">
-        <span>Category</span>
+        <span>{t("filter.category")}</span>
         <select value={category} onChange={(event) => onCategoryChange(event.target.value)}>
           {categories.map((item) => (
             <option value={item} key={item || "all-categories"}>
-              {item || "All"}
+              {item ? t(`category.${item}`) : t("filter.all")}
             </option>
           ))}
         </select>
       </label>
-      <label className="field">
-        <span>Status</span>
-        <select value={status} onChange={(event) => onStatusChange(event.target.value)}>
-          {statuses.map((item) => (
-            <option value={item} key={item || "all-statuses"}>
-              {item || "All"}
-            </option>
-          ))}
-        </select>
-      </label>
-      <button className="icon-button" type="button" onClick={onReset} title="Reset filters">
+      <button className="icon-button" type="button" onClick={onReset} title={t("filter.reset")}>
         <RotateCcw size={18} aria-hidden="true" />
       </button>
-      <Search className="filter-endcap" size={18} aria-hidden="true" />
     </div>
   );
 }

@@ -1,7 +1,6 @@
-import { FileDown, Leaf } from "lucide-react";
+import { Archive, RefreshCw } from "lucide-react";
 import { useEffect, useState } from "react";
 import {
-  exportEvergreen,
   listPosts,
   updatePostCategory,
   updatePostNotes,
@@ -11,7 +10,7 @@ import FilterBar from "../components/FilterBar.jsx";
 import PostCard from "../components/PostCard.jsx";
 import { useI18n } from "../i18n.jsx";
 
-function Evergreen() {
+function Archived() {
   const { t } = useI18n();
   const [posts, setPosts] = useState([]);
   const [category, setCategory] = useState("");
@@ -20,14 +19,15 @@ function Evergreen() {
   const filteredPosts = category ? posts.filter((post) => post.category === category) : posts;
 
   useEffect(() => {
-    loadEvergreen();
+    loadArchived();
   }, []);
 
-  async function loadEvergreen() {
+  async function loadArchived() {
     setLoading(true);
+    setMessage("");
     try {
-      const data = await listPosts({ status: "evergreen" });
-      setPosts(data.posts);
+      const data = await listPosts({ status: "archived" });
+      setPosts(data.posts.filter((post) => post.xhs_favorite_status !== "unfavorited"));
     } catch (error) {
       setMessage(error.message);
     } finally {
@@ -35,17 +35,19 @@ function Evergreen() {
     }
   }
 
-  async function handleExport() {
-    const result = await exportEvergreen(filteredPosts.map((post) => post.id));
-    setMessage(t("evergreen.exported", { count: result.exported_count, path: result.output_path }));
+  async function restorePost(id) {
+    const updated = await updatePostStatus(id, "keep");
+    setPosts((current) => current.filter((post) => post.id !== updated.id));
+    setMessage(t("archived.restored"));
   }
 
   async function handleStatusChange(id, reviewStatus) {
     const updated = await updatePostStatus(id, reviewStatus);
-    if (updated.review_status === "evergreen") {
+    if (updated.review_status === "archived") {
       setPosts((current) => current.map((post) => (post.id === id ? updated : post)));
     } else {
       setPosts((current) => current.filter((post) => post.id !== id));
+      setMessage(t("archived.movedToRemove"));
     }
   }
 
@@ -65,12 +67,12 @@ function Evergreen() {
     <section className="page">
       <header className="page-header">
         <div>
-          <h1>{t("evergreen.title")}</h1>
-          <p>{t("evergreen.count", { count: filteredPosts.length })}</p>
+          <h1>{t("archived.title")}</h1>
+          <p>{t("archived.subtitle", { count: filteredPosts.length })}</p>
         </div>
-        <button className="primary-button" type="button" onClick={handleExport} disabled={filteredPosts.length === 0}>
-          <FileDown size={18} aria-hidden="true" />
-          <span>{t("daily.export")}</span>
+        <button className="secondary-button" type="button" onClick={loadArchived} disabled={loading}>
+          <RefreshCw size={18} aria-hidden="true" />
+          <span>{t("daily.refresh")}</span>
         </button>
       </header>
 
@@ -83,20 +85,23 @@ function Evergreen() {
           <PostCard
             key={post.id}
             post={post}
+            mode="archived"
+            onRestore={restorePost}
             onStatusChange={handleStatusChange}
             onNotesSave={handleNotesSave}
             onCategoryChange={handleCategoryChange}
           />
         ))}
       </div>
+
       {!loading && filteredPosts.length === 0 ? (
         <div className="empty-state">
-          <Leaf size={22} aria-hidden="true" />
-          <span>{t("evergreen.empty")}</span>
+          <Archive size={22} aria-hidden="true" />
+          <span>{t("archived.empty")}</span>
         </div>
       ) : null}
     </section>
   );
 }
 
-export default Evergreen;
+export default Archived;

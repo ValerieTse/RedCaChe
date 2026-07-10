@@ -37,6 +37,14 @@ def _run_sqlite_additive_migrations() -> None:
         "import_run_id": "ALTER TABLE posts ADD COLUMN import_run_id VARCHAR(64)",
         "thumbnail_url": "ALTER TABLE posts ADD COLUMN thumbnail_url VARCHAR(2048)",
         "raw_payload_json": "ALTER TABLE posts ADD COLUMN raw_payload_json JSON DEFAULT '{}' NOT NULL",
+        "open_url": "ALTER TABLE posts ADD COLUMN open_url VARCHAR(2048)",
+        "category_is_manual": (
+            "ALTER TABLE posts ADD COLUMN category_is_manual BOOLEAN DEFAULT 0 NOT NULL"
+        ),
+        "enrichment_status": (
+            "ALTER TABLE posts ADD COLUMN enrichment_status VARCHAR(32) DEFAULT 'not_enriched' NOT NULL"
+        ),
+        "enriched_at": "ALTER TABLE posts ADD COLUMN enriched_at DATETIME",
     }
     with engine.begin() as connection:
         for column_name, statement in additions.items():
